@@ -31,3 +31,28 @@ func (s *StockService) GetLatestStockData(symbol string) (*repository.StockData,
 func (s *StockService) GetSymbols() ([]string, error) {
     return s.repo.GetSymbols()
 }
+
+// GetStockMetadata gets metadata for a specific symbol
+func (s *StockService) GetStockMetadata(symbol string) (*repository.StockMetadata, error) {
+    return s.repo.GetStockMetadata(symbol)
+}
+
+// GetAllStockMetadata gets metadata for all symbols
+func (s *StockService) GetAllStockMetadata() ([]repository.StockMetadata, error) {
+    return s.repo.GetAllStockMetadata()
+}
+
+// StoreStockMetadata stores metadata for a symbol
+func (s *StockService) StoreStockMetadata(metadata *repository.StockMetadata) error {
+    return s.repo.StoreStockMetadata(metadata)
+}
+
+// GetSymbolsWithMetadata gets all symbols that have metadata
+func (s *StockService) GetSymbolsWithMetadata() ([]string, error) {
+    return s.repo.GetSymbolsWithMetadata()
+}
+
+// DeleteStockMetadata deletes metadata for a specific symbol
+func (s *StockService) DeleteStockMetadata(symbol string) error {
+    return s.repo.DeleteStockMetadata(symbol)
+}

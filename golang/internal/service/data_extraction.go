@@ -12,13 +12,15 @@ import (
 // DataExtractionService handles fetching and storing financial data from external APIs
 type DataExtractionService struct {
     alphaVantageClient *api.AlphaVantageClient
+    finnhubClient      *api.FinnhubClient
     stockRepo          *repository.StockRepository
 }
 
 // NewDataExtractionService creates a new data extraction service
-func NewDataExtractionService(alphaVantageClient *api.AlphaVantageClient, stockRepo *repository.StockRepository) *DataExtractionService {
+func NewDataExtractionService(alphaVantageClient *api.AlphaVantageClient, finnhubClient *api.FinnhubClient, stockRepo *repository.StockRepository) *DataExtractionService {
     return &DataExtractionService{
         alphaVantageClient: alphaVantageClient,
+        finnhubClient:      finnhubClient,
         stockRepo:          stockRepo,
     }
 }
@@ -172,3 +174,73 @@ func (s *DataExtractionService) BatchExtractData(ctx context.Context, symbols []
     log.Printf("Completed batch extraction for %d symbols", len(symbols))
     return nil
 } 
+
+
+// ExtractAndStoreStockMetaData fetches stock metadata from Finnhub API and stores it in the database
+func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context, exchange string) error {
+    log.Printf("Starting metadata extraction for stock symbols in exchange: %s", exchange)
+
+    // Get stock symbols from Finnhub
+    stocks, err := s.finnhubClient.GetStockSymbols(ctx, exchange)
+    if err != nil {
+        return fmt.Errorf("failed to get stock symbols: %w", err)
+    }
+    companyProfiles := make(map[string]api.CompanyProfile)
+
+    for _, stock := range stocks {
+        companyProfile, err := s.finnhubClient.GetCompanyProfile(ctx, stock.Symbol)
+        if err != nil {
+            return fmt.Errorf("failed to get company profile for %s: %w", stock.Symbol, err)
+        }
+        companyProfiles[stock.Symbol] = *companyProfile
+    }
+
+    // Process and store each stock symbol
+    storedCount := 0
+    errorCount := 0 
+    for _, stock := range stocks {
+        log.Printf("Processing metadata for %s", stock.Symbol)
+        companyProfile, ok := companyProfiles[stock.Symbol]
+        
+        if !ok {
+            log.Printf("No company profile found for %s", stock.Symbol)
+            continue
+        }
+        // Create metadata object from Finnhub data
+        metadata := &repository.StockMetadata{
+            Symbol:        stock.Symbol,
+            CompanyName:   companyProfile.Name,
+            Industry:      companyProfile.FinnhubIndustry,
+            Exchange:      exchange,
+            Currency:      stock.Currency,
+            MarketCap:     companyProfile.MarketCapitalization,
+            // PE:            companyProfile.PeRatio,
+            // DividendYield: companyProfile.DividendYield,
+            Description:   stock.Description,
+            Website:       companyProfile.Weburl,
+        }
+
+        // Will remove this and will make it a queued job
+        if stock.Type == "Common Stock" {            
+            log.Printf("Storing basic metadata for %s: %s", stock.Symbol, stock.Description)
+        
+            err = s.stockRepo.StoreStockMetadata(metadata)
+            if err != nil {
+                log.Printf("Failed to store metadata for %s: %v", stock.Symbol, err)
+                errorCount++
+                continue
+            }
+            
+            storedCount++
+            log.Printf("Successfully stored metadata for %s", stock.Symbol)
+        }
+    }
+
+    log.Printf("Completed metadata extraction for exchange %s - Stored: %d, Errors: %d", exchange, storedCount, errorCount)
+    
+    if storedCount == 0 {
+        return fmt.Errorf("no metadata was stored for exchange %s", exchange)
+    }
+    
+    return nil
+}

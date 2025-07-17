@@ -5,6 +5,7 @@ import (
     "net/http"
     "time"
     "stock-api/internal/service"
+    "stock-api/internal/repository"
 )
 
 type StockHandler struct {
@@ -98,6 +99,146 @@ func (h *StockHandler) GetStockData(w http.ResponseWriter, r *http.Request) {
         "end_date":   endDate.Format("2006-01-02"),
         "data":      data,
         "count":     len(data),
+        "timestamp": time.Now(),
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+// GetStockMetadata gets metadata for a specific symbol
+func (h *StockHandler) GetStockMetadata(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    symbol := r.URL.Query().Get("symbol")
+    if symbol == "" {
+        http.Error(w, "symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    metadata, err := h.service.GetStockMetadata(symbol)
+    if err != nil {
+        http.Error(w, "could not get stock metadata", http.StatusInternalServerError)
+        return
+    }
+
+    response := map[string]interface{}{
+        "metadata":  metadata,
+        "timestamp": time.Now(),
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+// GetAllStockMetadata gets metadata for all symbols
+func (h *StockHandler) GetAllStockMetadata(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    metadata, err := h.service.GetAllStockMetadata()
+    if err != nil {
+        http.Error(w, "could not get stock metadata", http.StatusInternalServerError)
+        return
+    }
+
+    response := map[string]interface{}{
+        "metadata":  metadata,
+        "count":     len(metadata),
+        "timestamp": time.Now(),
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+// StoreStockMetadata stores metadata for a symbol
+func (h *StockHandler) StoreStockMetadata(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var metadata struct {
+        Symbol        string  `json:"symbol"`
+        CompanyName   string  `json:"company_name"`
+        Sector        string  `json:"sector"`
+        Industry      string  `json:"industry"`
+        Exchange      string  `json:"exchange"`
+        Currency      string  `json:"currency"`
+        MarketCap     float64 `json:"market_cap"`
+        PE            float64 `json:"pe_ratio"`
+        DividendYield float64 `json:"dividend_yield"`
+        Description   string  `json:"description"`
+        Website       string  `json:"website"`
+    }
+
+    if err := json.NewDecoder(r.Body).Decode(&metadata); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if metadata.Symbol == "" {
+        http.Error(w, "symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    stockMetadata := &repository.StockMetadata{
+        Symbol:        metadata.Symbol,
+        CompanyName:   metadata.CompanyName,
+        Industry:      metadata.Industry,
+        Exchange:      metadata.Exchange,
+        Currency:      metadata.Currency,
+        MarketCap:     metadata.MarketCap,
+        // PE:            metadata.PE,
+        // DividendYield: metadata.DividendYield,
+        Description:   metadata.Description,
+        Website:       metadata.Website,
+    }
+
+    err := h.service.StoreStockMetadata(stockMetadata)
+    if err != nil {
+        http.Error(w, "could not store stock metadata", http.StatusInternalServerError)
+        return
+    }
+
+    response := map[string]interface{}{
+        "message":   "Stock metadata stored successfully",
+        "symbol":    metadata.Symbol,
+        "timestamp": time.Now(),
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+// DeleteStockMetadata deletes metadata for a specific symbol
+func (h *StockHandler) DeleteStockMetadata(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodDelete {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    symbol := r.URL.Query().Get("symbol")
+    if symbol == "" {
+        http.Error(w, "symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    err := h.service.DeleteStockMetadata(symbol)
+    if err != nil {
+        http.Error(w, "could not delete stock metadata", http.StatusInternalServerError)
+        return
+    }
+
+    response := map[string]interface{}{
+        "message":   "Stock metadata deleted successfully",
+        "symbol":    symbol,
         "timestamp": time.Now(),
     }
 

@@ -13,6 +13,7 @@ type Config struct {
     PostgresURL string
     // External API configurations
     AlphaVantageAPIKey string
+    FinnhubAPIKey      string
     YahooFinanceAPIKey string
     PolygonAPIKey      string
     // API rate limiting
@@ -33,6 +34,7 @@ func Load() Config {
     return Config{
         PostgresURL:         getEnvOrDefault("POSTGRES_URL", "postgres://localhost:5432/finance_db?sslmode=disable"),
         AlphaVantageAPIKey:  os.Getenv("ALPHA_VANTAGE_API_KEY"),
+        FinnhubAPIKey:       os.Getenv("FINNHUB_API_KEY"),
         YahooFinanceAPIKey:  os.Getenv("YAHOO_FINANCE_API_KEY"),
         PolygonAPIKey:       os.Getenv("POLYGON_API_KEY"),
         APIRequestTimeout:   getDurationEnvOrDefault("API_REQUEST_TIMEOUT", 30*time.Second),

@@ -26,11 +26,13 @@ func main() {
 
     // Initialize API clients
     alphaVantageClient := api.NewAlphaVantageClient(cfg.AlphaVantageAPIKey, cfg.APIRequestTimeout)
+    finnHubClient := api.NewFinnhubClient(cfg.FinnhubAPIKey, cfg.APIRequestTimeout)
+
 
     // Initialize repositories and services
     stockRepo := repository.NewStockRepository(db)
     stockService := service.NewStockService(stockRepo)
-    dataExtractionService := service.NewDataExtractionService(alphaVantageClient, stockRepo)
+    dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient,stockRepo)
 
     // Initialize handlers
     stockHandler := handler.NewStockHandler(stockService)
@@ -42,6 +44,12 @@ func main() {
     // Stock data endpoints
     mux.HandleFunc("/api/stocks", stockHandler.GetStockSummary)
     mux.HandleFunc("/api/stocks/data", stockHandler.GetStockData)
+    
+    // Stock metadata endpoints
+    mux.HandleFunc("/api/stocks/metadata", stockHandler.GetStockMetadata)
+    mux.HandleFunc("/api/stocks/metadata/all", stockHandler.GetAllStockMetadata)
+    mux.HandleFunc("/api/stocks/metadata/store", stockHandler.StoreStockMetadata)
+    mux.HandleFunc("/api/stocks/metadata/delete", stockHandler.DeleteStockMetadata)
     
     // Data extraction endpoints
     mux.HandleFunc("/api/extract/stock", extractionHandler.ExtractStockData)
@@ -65,6 +73,10 @@ func main() {
     log.Printf("  GET  /health - Health check")
     log.Printf("  GET  /api/stocks?symbol=AAPL - Get stock summary")
     log.Printf("  GET  /api/stocks/data?symbol=AAPL&start=2024-01-01&end=2024-12-31 - Get stock data")
+    log.Printf("  GET  /api/stocks/metadata?symbol=AAPL - Get stock metadata")
+    log.Printf("  GET  /api/stocks/metadata/all - Get all stock metadata")
+    log.Printf("  POST /api/stocks/metadata/store - Store stock metadata")
+    log.Printf("  DELETE /api/stocks/metadata/delete?symbol=AAPL - Delete stock metadata")
     log.Printf("  POST /api/extract/stock - Extract stock data")
     log.Printf("  POST /api/extract/quote - Extract latest quote")
     log.Printf("  POST /api/extract/batch - Batch extract data")
