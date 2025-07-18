@@ -123,7 +123,7 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
 func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error) {
     query := `
         SELECT symbol, company_name, industry, exchange, currency,
-               market_cap, description, website, created_at, updated_at
+               market_cap, description, website, type, created_at, updated_at
         FROM stocks_metadata
         WHERE symbol = $1
     `
