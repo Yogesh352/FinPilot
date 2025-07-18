@@ -9,13 +9,14 @@ CREATE TABLE IF NOT EXISTS stocks_metadata (
     market_cap DECIMAL(20,2),
     description TEXT,
     website VARCHAR(255),
+    type VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_stocks_metadata_symbol ON stocks_metadata(symbol);
-CREATE INDEX IF NOT EXISTS idx_stocks_metadata_sector ON stocks_metadata(sector);
+CREATE INDEX IF NOT EXISTS idx_stocks_metadata_industry ON stocks_metadata(industry);
 CREATE INDEX IF NOT EXISTS idx_stocks_metadata_industry ON stocks_metadata(industry);
 CREATE INDEX IF NOT EXISTS idx_stocks_metadata_exchange ON stocks_metadata(exchange);
 

@@ -56,6 +56,9 @@ func main() {
     mux.HandleFunc("/api/extract/quote", extractionHandler.ExtractLatestQuote)
     mux.HandleFunc("/api/extract/batch", extractionHandler.BatchExtractData)
     mux.HandleFunc("/api/extract/status", extractionHandler.GetExtractionStatus)
+    mux.HandleFunc("/api/extract/stockmetadata", extractionHandler.ExtractStockMetadata)
+    mux.HandleFunc("/api/extract/companyprofile", extractionHandler.ExtractCompanyProfiles)
+    
 
     // Health check endpoint
     mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -81,6 +84,8 @@ func main() {
     log.Printf("  POST /api/extract/quote - Extract latest quote")
     log.Printf("  POST /api/extract/batch - Batch extract data")
     log.Printf("  GET  /api/extract/status?symbol=AAPL - Get extraction status")
+    log.Printf("  POST /api/extract/stockmetadata - Extract stock metadata by exchange")
+    log.Printf("  POST /api/extract/companyprofile - Extract company profile")
     
     log.Fatal(http.ListenAndServe(":"+port, mux))
 }

@@ -26,13 +26,14 @@ type StockData struct {
 // StockMetadata represents stock metadata information
 type StockMetadata struct {
     Symbol        string    `json:"symbol"`
-    CompanyName   string    `json:"company_name"`
-    Industry      string    `json:"industry"`
+    CompanyName   *string    `json:"company_name"`
+    Industry      *string    `json:"industry"`
     Exchange      string    `json:"exchange"`
     Currency      string    `json:"currency"`
-    MarketCap     float64   `json:"market_cap"`
+    MarketCap     *float64   `json:"market_cap"`
     Description   string    `json:"description"`
-    Website       string    `json:"website"`
+    Website       *string    `json:"website"`
+    Type          string    `json:"type"`
     CreatedAt     time.Time `json:"created_at"`
     UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -75,30 +76,34 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
     
     query := `
         INSERT INTO stocks_metadata (
-            symbol, company_name, sector, industry, exchange, currency,
-            market_cap, description, website, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            symbol, company_name, industry, exchange, currency,
+            market_cap, description, website, type, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (symbol) DO UPDATE SET
+            symbol = EXCLUDED.symbol,
             company_name = EXCLUDED.company_name,
             industry = EXCLUDED.industry,
             exchange = EXCLUDED.exchange,
             currency = EXCLUDED.currency,
-            dividend_yield = EXCLUDED.dividend_yield,
+            market_cap = EXCLUDED.market_cap,
             description = EXCLUDED.description,
             website = EXCLUDED.website,
+            type = EXCLUDED.type,
+            created_at = EXCLUDED.created_at,
             updated_at = EXCLUDED.updated_at
     `
     
     now := time.Now()
     result, err := r.db.Exec(query,
         metadata.Symbol,
-        metadata.CompanyName,
-        metadata.Industry,
+        &metadata.CompanyName,
+        &metadata.Industry,
         metadata.Exchange,
         metadata.Currency,
-        metadata.MarketCap,
+        &metadata.MarketCap,
         metadata.Description,
-        metadata.Website,
+        &metadata.Website,
+        metadata.Type,
         now,
         now,
     )
@@ -117,8 +122,8 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
 // GetStockMetadata retrieves metadata for a specific symbol
 func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error) {
     query := `
-        SELECT symbol, company_name, sector, industry, exchange, currency,
-               market_cap, pe_ratio, dividend_yield, description, website, created_at, updated_at
+        SELECT symbol, company_name, industry, exchange, currency,
+               market_cap, description, website, created_at, updated_at
         FROM stocks_metadata
         WHERE symbol = $1
     `
@@ -133,6 +138,7 @@ func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error
         &metadata.MarketCap,
         &metadata.Description,
         &metadata.Website,
+        &metadata.Type,
         &metadata.CreatedAt,
         &metadata.UpdatedAt,
     )
@@ -147,8 +153,8 @@ func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error
 // GetAllStockMetadata retrieves metadata for all symbols
 func (r *StockRepository) GetAllStockMetadata() ([]StockMetadata, error) {
     query := `
-        SELECT symbol, company_name, sector, industry, exchange, currency,
-               market_cap, pe_ratio, dividend_yield, description, website, created_at, updated_at
+        SELECT symbol, company_name, industry, exchange, currency,
+               market_cap, description, website, created_at, updated_at
         FROM stocks_metadata
         ORDER BY symbol
     `
@@ -171,6 +177,7 @@ func (r *StockRepository) GetAllStockMetadata() ([]StockMetadata, error) {
             &record.MarketCap,
             &record.Description,
             &record.Website,
+            &record.Type,
             &record.CreatedAt,
             &record.UpdatedAt,
         )
@@ -309,6 +316,21 @@ func (r *StockRepository) GetSymbolsWithMetadata() ([]string, error) {
     }
     
     return symbols, nil
+}
+
+func (r *StockRepository) GetSymbolWithMetadata(symbol string) (string, error) {
+	query := `SELECT symbol FROM stocks_metadata WHERE symbol = $1 LIMIT 1`
+
+	var result string
+	err := r.db.QueryRow(query, symbol).Scan(&result)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("symbol %s not found in metadata", symbol)
+		}
+		return "", fmt.Errorf("failed to query symbol %s: %w", symbol, err)
+	}
+
+	return result, nil
 }
 
 // DeleteOldData deletes stock data older than the specified date

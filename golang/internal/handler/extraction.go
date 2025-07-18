@@ -23,6 +23,15 @@ type ExtractStockDataRequest struct {
     Symbol string `json:"symbol"`
 }
 
+type ExtractByExchangeRequest struct {
+    Exchange string `json:"exchange"`
+}
+
+type ExtractBySymbolsRequest struct {
+    Symbols []string `json:"symbols"`
+}
+
+
 // ExtractStockDataResponse represents the response for extraction
 type ExtractStockDataResponse struct {
     Symbol    string    `json:"symbol"`
@@ -198,3 +207,83 @@ func (h *ExtractionHandler) GetExtractionStatus(w http.ResponseWriter, r *http.R
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(response)
 } 
+
+func (h *ExtractionHandler) ExtractStockMetadata(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req ExtractByExchangeRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if req.Exchange == "" {
+        http.Error(w, "Exchange is required", http.StatusBadRequest)
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
+    defer cancel()
+
+    err := h.extractionService.ExtractAndStoreStockMetaData(ctx, req.Exchange)
+
+    response := map[string]interface{}{
+        "exchange":  req.Exchange,
+        "timestamp": time.Now(),
+    }
+
+    if err != nil {
+        response["status"] = "error"
+        response["message"] = err.Error()
+        w.WriteHeader(http.StatusInternalServerError)
+    } else {
+        response["status"] = "success"
+        response["message"] = "Stock metadata extracted successfully"
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+func (h *ExtractionHandler) ExtractCompanyProfiles(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req ExtractBySymbolsRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if len(req.Symbols) == 0 {
+        http.Error(w, "At least one symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
+    defer cancel()
+
+    err := h.extractionService.ExtractAndStoreCompanyData(ctx, req.Symbols)
+
+    response := map[string]interface{}{
+        "symbols":   req.Symbols,
+        "timestamp": time.Now(),
+    }
+
+    if err != nil {
+        response["status"] = "error"
+        response["message"] = err.Error()
+        w.WriteHeader(http.StatusInternalServerError)
+    } else {
+        response["status"] = "success"
+        response["message"] = "Company profiles extracted successfully"
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}

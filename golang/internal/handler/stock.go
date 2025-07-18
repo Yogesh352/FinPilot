@@ -6,6 +6,7 @@ import (
     "time"
     "stock-api/internal/service"
     "stock-api/internal/repository"
+    "stock-api/internal/util"
 )
 
 type StockHandler struct {
@@ -167,15 +168,15 @@ func (h *StockHandler) StoreStockMetadata(w http.ResponseWriter, r *http.Request
     var metadata struct {
         Symbol        string  `json:"symbol"`
         CompanyName   string  `json:"company_name"`
-        Sector        string  `json:"sector"`
         Industry      string  `json:"industry"`
         Exchange      string  `json:"exchange"`
         Currency      string  `json:"currency"`
         MarketCap     float64 `json:"market_cap"`
-        PE            float64 `json:"pe_ratio"`
-        DividendYield float64 `json:"dividend_yield"`
+        // PE            float64 `json:"pe_ratio"`
+        // DividendYield float64 `json:"dividend_yield"`
         Description   string  `json:"description"`
         Website       string  `json:"website"`
+        Type          string  `json:"type"`
     }
 
     if err := json.NewDecoder(r.Body).Decode(&metadata); err != nil {
@@ -190,15 +191,15 @@ func (h *StockHandler) StoreStockMetadata(w http.ResponseWriter, r *http.Request
 
     stockMetadata := &repository.StockMetadata{
         Symbol:        metadata.Symbol,
-        CompanyName:   metadata.CompanyName,
-        Industry:      metadata.Industry,
+        CompanyName:   util.StrPtr(metadata.CompanyName),
+        Industry:      util.StrPtr(metadata.Industry),
         Exchange:      metadata.Exchange,
         Currency:      metadata.Currency,
-        MarketCap:     metadata.MarketCap,
+        MarketCap:     util.FloatPtr(metadata.MarketCap),
         // PE:            metadata.PE,
         // DividendYield: metadata.DividendYield,
         Description:   metadata.Description,
-        Website:       metadata.Website,
+        Website:       util.StrPtr(metadata.Website),
     }
 
     err := h.service.StoreStockMetadata(stockMetadata)

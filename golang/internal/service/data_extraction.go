@@ -7,6 +7,7 @@ import (
     "time"
     "stock-api/internal/api"
     "stock-api/internal/repository"
+    "stock-api/internal/util"
 )
 
 // DataExtractionService handles fetching and storing financial data from external APIs
@@ -185,39 +186,35 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
     if err != nil {
         return fmt.Errorf("failed to get stock symbols: %w", err)
     }
-    companyProfiles := make(map[string]api.CompanyProfile)
+    // companyProfiles := make(map[string]api.CompanyProfile)
 
-    for _, stock := range stocks {
-        companyProfile, err := s.finnhubClient.GetCompanyProfile(ctx, stock.Symbol)
-        if err != nil {
-            return fmt.Errorf("failed to get company profile for %s: %w", stock.Symbol, err)
-        }
-        companyProfiles[stock.Symbol] = *companyProfile
-    }
+    // for _, stock := range stocks {
+    //     companyProfile, err := s.finnhubClient.GetCompanyProfile(ctx, stock.Symbol)
+    //     if err != nil {
+    //         return fmt.Errorf("failed to get company profile for %s: %w", stock.Symbol, err)
+    //     }
+    //     companyProfiles[stock.Symbol] = *companyProfile
+    // }
 
     // Process and store each stock symbol
     storedCount := 0
     errorCount := 0 
     for _, stock := range stocks {
         log.Printf("Processing metadata for %s", stock.Symbol)
-        companyProfile, ok := companyProfiles[stock.Symbol]
         
-        if !ok {
-            log.Printf("No company profile found for %s", stock.Symbol)
-            continue
-        }
         // Create metadata object from Finnhub data
         metadata := &repository.StockMetadata{
             Symbol:        stock.Symbol,
-            CompanyName:   companyProfile.Name,
-            Industry:      companyProfile.FinnhubIndustry,
+            CompanyName:   nil,
+            Industry:      nil,
             Exchange:      exchange,
             Currency:      stock.Currency,
-            MarketCap:     companyProfile.MarketCapitalization,
+            MarketCap:     nil,
             // PE:            companyProfile.PeRatio,
             // DividendYield: companyProfile.DividendYield,
             Description:   stock.Description,
-            Website:       companyProfile.Weburl,
+            Website:       nil,
+            Type:          stock.Type,
         }
 
         // Will remove this and will make it a queued job
@@ -243,4 +240,69 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
     }
     
     return nil
+}
+
+
+func (s *DataExtractionService) ExtractAndStoreCompanyData(ctx context.Context, symbols []string) error {
+	companyProfiles := make(map[string]*api.CompanyProfile)
+	storedCount := 0
+	errorCount := 0
+
+	for _, symbol := range symbols {
+		profile, err := s.finnhubClient.GetCompanyProfile(ctx, symbol)
+		if err != nil {
+			log.Printf("failed to get company profile for %s: %v", symbol, err)
+			errorCount++
+			continue
+		}
+		companyProfiles[symbol] = profile
+
+		log.Printf("Processing metadata for %s", symbol)
+		companyProfile, ok := companyProfiles[symbol]
+		if !ok {
+			log.Printf("No company profile found for %s", symbol)
+			continue
+		}
+
+		existingStock, err := s.stockRepo.GetStockMetadata(symbol)
+		if err != nil {
+			log.Printf("failed to get stock metadata for symbol %s: %v", symbol, err)
+			errorCount++
+			continue
+		}
+
+		metadata := &repository.StockMetadata{
+			Symbol:        existingStock.Symbol,
+			CompanyName:   util.StrPtr(companyProfile.Name),
+			Industry:      util.StrPtr(companyProfile.FinnhubIndustry),
+			Exchange:      existingStock.Exchange,
+			Currency:      existingStock.Currency,
+			MarketCap:     util.FloatPtr(companyProfile.MarketCapitalization),
+			// PE:         floatPtr(companyProfile.PeRatio),
+			// DividendYield: floatPtr(companyProfile.DividendYield),
+			Description:   existingStock.Description,
+			Website:       util.StrPtr(companyProfile.Weburl),
+			Type:          existingStock.Type,
+		}
+
+		if existingStock.Type == "Common Stock" {
+			log.Printf("Storing basic metadata for %s: %s", existingStock.Symbol, existingStock.Description)
+
+			err = s.stockRepo.StoreStockMetadata(metadata)
+			if err != nil {
+				log.Printf("Failed to store metadata for %s: %v", existingStock.Symbol, err)
+				errorCount++
+				continue
+			}
+
+			storedCount++
+			log.Printf("Successfully stored company profile for %s", existingStock.Symbol)
+		}
+	}
+
+	if storedCount == 0 {
+		return fmt.Errorf("no company profile data was stored for provided symbols")
+	}
+
+	return nil
 }
