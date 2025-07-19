@@ -186,21 +186,14 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
     if err != nil {
         return fmt.Errorf("failed to get stock symbols: %w", err)
     }
-    // companyProfiles := make(map[string]api.CompanyProfile)
-
-    // for _, stock := range stocks {
-    //     companyProfile, err := s.finnhubClient.GetCompanyProfile(ctx, stock.Symbol)
-    //     if err != nil {
-    //         return fmt.Errorf("failed to get company profile for %s: %w", stock.Symbol, err)
-    //     }
-    //     companyProfiles[stock.Symbol] = *companyProfile
-    // }
 
     // Process and store each stock symbol
     storedCount := 0
     errorCount := 0 
+    batchIdCount:= 1
     for _, stock := range stocks {
         log.Printf("Processing metadata for %s", stock.Symbol)
+        batchId := batchIdCount / 5
         
         // Create metadata object from Finnhub data
         metadata := &repository.StockMetadata{
@@ -215,6 +208,7 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
             Description:   stock.Description,
             Website:       nil,
             Type:          stock.Type,
+            BatchId:       batchId,
         }
 
         // Will remove this and will make it a queued job
@@ -229,6 +223,7 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
             }
             
             storedCount++
+            batchIdCount++
             log.Printf("Successfully stored metadata for %s", stock.Symbol)
         }
     }
@@ -283,6 +278,7 @@ func (s *DataExtractionService) ExtractAndStoreCompanyData(ctx context.Context, 
 			Description:   existingStock.Description,
 			Website:       util.StrPtr(companyProfile.Weburl),
 			Type:          existingStock.Type,
+            BatchId:       existingStock.BatchId,
 		}
 
 		if existingStock.Type == "Common Stock" {

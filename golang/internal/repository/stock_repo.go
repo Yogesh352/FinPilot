@@ -34,6 +34,7 @@ type StockMetadata struct {
     Description   string    `json:"description"`
     Website       *string    `json:"website"`
     Type          string    `json:"type"`
+	BatchId		  int		`json:"batchId"`
     CreatedAt     time.Time `json:"created_at"`
     UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -77,8 +78,8 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
     query := `
         INSERT INTO stocks_metadata (
             symbol, company_name, industry, exchange, currency,
-            market_cap, description, website, type, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            market_cap, description, website, type, batchId, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (symbol) DO UPDATE SET
             symbol = EXCLUDED.symbol,
             company_name = EXCLUDED.company_name,
@@ -89,6 +90,7 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
             description = EXCLUDED.description,
             website = EXCLUDED.website,
             type = EXCLUDED.type,
+			batchId = EXCLUDED.batchId,
             created_at = EXCLUDED.created_at,
             updated_at = EXCLUDED.updated_at
     `
@@ -104,6 +106,7 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
         metadata.Description,
         &metadata.Website,
         metadata.Type,
+		metadata.BatchId,
         now,
         now,
     )
@@ -139,6 +142,7 @@ func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error
         &metadata.Description,
         &metadata.Website,
         &metadata.Type,
+		&metadata.BatchId,
         &metadata.CreatedAt,
         &metadata.UpdatedAt,
     )
@@ -178,6 +182,7 @@ func (r *StockRepository) GetAllStockMetadata() ([]StockMetadata, error) {
             &record.Description,
             &record.Website,
             &record.Type,
+			&record.BatchId,
             &record.CreatedAt,
             &record.UpdatedAt,
         )
