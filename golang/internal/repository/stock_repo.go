@@ -34,7 +34,7 @@ type StockMetadata struct {
     Description   string    `json:"description"`
     Website       *string    `json:"website"`
     Type          string    `json:"type"`
-	BatchId		  int		`json:"batchId"`
+	BatchId		  int		`json:"batch_id"`
     CreatedAt     time.Time `json:"created_at"`
     UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -78,7 +78,7 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
     query := `
         INSERT INTO stocks_metadata (
             symbol, company_name, industry, exchange, currency,
-            market_cap, description, website, type, batchId, created_at, updated_at
+            market_cap, description, website, type, batch_id, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (symbol) DO UPDATE SET
             symbol = EXCLUDED.symbol,
@@ -90,7 +90,7 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
             description = EXCLUDED.description,
             website = EXCLUDED.website,
             type = EXCLUDED.type,
-			batchId = EXCLUDED.batchId,
+			batch_id = EXCLUDED.batch_id,
             created_at = EXCLUDED.created_at,
             updated_at = EXCLUDED.updated_at
     `
@@ -126,7 +126,7 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
 func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error) {
     query := `
         SELECT symbol, company_name, industry, exchange, currency,
-               market_cap, description, website, type, created_at, updated_at
+               market_cap, description, website, type, batch_id, created_at, updated_at
         FROM stocks_metadata
         WHERE symbol = $1
     `
