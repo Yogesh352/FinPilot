@@ -61,7 +61,7 @@ with DAG(
     dag_id="extract_company_profile_batch",
     default_args=default_args,
     schedule="*/2 * * * *",
-    start_date=datetime(2023, 1, 1),
+    start_date=datetime(2025, 7, 10),
     catchup=False,
     max_active_runs=1,
     tags=["stocks", "api", "partitioned"],
