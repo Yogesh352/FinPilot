@@ -14,94 +14,90 @@ import (
 type DataExtractionService struct {
     alphaVantageClient *api.AlphaVantageClient
     finnhubClient      *api.FinnhubClient
+    polygonClient      *api.PolygonClient
     stockRepo          *repository.StockRepository
 }
 
 // NewDataExtractionService creates a new data extraction service
-func NewDataExtractionService(alphaVantageClient *api.AlphaVantageClient, finnhubClient *api.FinnhubClient, stockRepo *repository.StockRepository) *DataExtractionService {
+func NewDataExtractionService(alphaVantageClient *api.AlphaVantageClient, finnhubClient *api.FinnhubClient, polygonClient *api.PolygonClient, stockRepo *repository.StockRepository) *DataExtractionService {
     return &DataExtractionService{
         alphaVantageClient: alphaVantageClient,
         finnhubClient:      finnhubClient,
+        polygonClient:      polygonClient,
         stockRepo:          stockRepo,
     }
 }
 
 // ExtractAndStoreStockData fetches stock data from external API and stores it in the database
-func (s *DataExtractionService) ExtractAndStoreStockData(ctx context.Context, symbol string) error {
+func (s *DataExtractionService) ExtractAndStoreStockData(ctx context.Context, symbol string, from time.Time, to time.Time) error {
     log.Printf("Starting data extraction for symbol: %s", symbol)
 
-    // Get time series data from Alpha Vantage
-    timeSeries, err := s.alphaVantageClient.GetIntradayTimeSeries(ctx, symbol)
+    // Get time series data from Polygon
+    timeSeries, symbol, err := s.polygonClient.GetIntradayBars(ctx, symbol, from, to, 5)
     if err != nil {
         return fmt.Errorf("failed to get time series data: %w", err)
     }
 
-    log.Printf("Processing %d data points for symbol %s", len(timeSeries.TimeSeries), symbol)
+    log.Printf("Processing %d data points for symbol %s", len(timeSeries), symbol)
 
     // Process and store each data point
     storedCount := 0
     errorCount := 0
     
-    for date, data := range timeSeries.TimeSeries {
-        log.Printf("Processing data for %s on %s", symbol, date)
+    for _, data := range timeSeries {
+        log.Printf("Processing data for %s", symbol)
         
-        // Parse the date
-        parsedDate, err := time.Parse("2006-01-02 15:04:05", date)
-        if err != nil {
-            log.Printf("Failed to parse date %s for symbol %s: %v", date, symbol, err)
-            errorCount++
-            continue
-        }
+        parsedDate := time.UnixMilli(data.Timestamp)
 
         // Parse numeric values
-        open, err := api.ParseFloat(data.Open)
-        if err != nil {
-            log.Printf("Failed to parse open price for %s on %s: %v", symbol, date, err)
-            errorCount++
-            continue
-        }
+        // open, err := api.ParseFloat(data.Open)
+        // if err != nil {
+        //     log.Printf("Failed to parse open price for %s on %s: %v", symbol, date, err)
+        //     errorCount++
+        //     continue
+        // }
 
-        high, err := api.ParseFloat(data.High)
-        if err != nil {
-            log.Printf("Failed to parse high price for %s on %s: %v", symbol, date, err)
-            errorCount++
-            continue
-        }
+        // high, err := api.ParseFloat(data.High)
+        // if err != nil {
+        //     log.Printf("Failed to parse high price for %s on %s: %v", symbol, date, err)
+        //     errorCount++
+        //     continue
+        // }
 
-        low, err := api.ParseFloat(data.Low)
-        if err != nil {
-            log.Printf("Failed to parse low price for %s on %s: %v", symbol, date, err)
-            errorCount++
-            continue
-        }
+        // low, err := api.ParseFloat(data.Low)
+        // if err != nil {
+        //     log.Printf("Failed to parse low price for %s on %s: %v", symbol, date, err)
+        //     errorCount++
+        //     continue
+        // }
 
-        close, err := api.ParseFloat(data.Close)
-        if err != nil {
-            log.Printf("Failed to parse close price for %s on %s: %v", symbol, date, err)
-            errorCount++
-            continue
-        }
+        // close, err := api.ParseFloat(data.Close)
+        // if err != nil {
+        //     log.Printf("Failed to parse close price for %s on %s: %v", symbol, date, err)
+        //     errorCount++
+        //     continue
+        // }
 
-        volume, err := api.ParseFloat(data.Volume)
-        if err != nil {
-            log.Printf("Failed to parse volume for %s on %s: %v", symbol, date, err)
-            errorCount++
-            continue
-        }
+        // volume, err := api.ParseFloat(data.Volume)
+        // if err != nil {
+        //     log.Printf("Failed to parse volume for %s on %s: %v", symbol, date, err)
+        //     errorCount++
+        //     continue
+        // }
 
         log.Printf("Storing data for %s on %s: O=%.2f, H=%.2f, L=%.2f, C=%.2f, V=%.0f", 
-            symbol, date, open, high, low, close, volume)
+            symbol, data.Timestamp, data.Open, data.High, data.Low, data.Close, data.Volume)
 
         // Store in database
-        err = s.stockRepo.StoreStockData(symbol, parsedDate, open, high, low, close, volume)
+        err = s.stockRepo.StoreStockData(symbol, parsedDate, data.Open, data.High, data.Low, data.Close, data.Volume)
         if err != nil {
-            log.Printf("Failed to store data for %s on %s: %v", symbol, date, err)
+            log.Printf("Failed to store data for %s on %s: %v", symbol, parsedDate, err)
             errorCount++
             continue
         }
         
         storedCount++
-        log.Printf("Successfully stored data for %s on %s", symbol, date)
+        log.Printf("Successfully stored data for %s on %s", symbol, parsedDate)
     }
 
     log.Printf("Completed data extraction for symbol: %s - Stored: %d, Errors: %d", symbol, storedCount, errorCount)
@@ -114,46 +110,46 @@ func (s *DataExtractionService) ExtractAndStoreStockData(ctx context.Context, sy
 }
 
 // ExtractLatestQuote fetches and stores the latest quote for a symbol
-func (s *DataExtractionService) ExtractLatestQuote(ctx context.Context, symbol string) error {
-    log.Printf("Extracting latest quote for symbol: %s", symbol)
+// func (s *DataExtractionService) ExtractLatestQuote(ctx context.Context, symbol string) error {
+//     log.Printf("Extracting latest quote for symbol: %s", symbol)
     
-    quote, err := s.alphaVantageClient.GetStockQuote(ctx, symbol)
-    if err != nil {
-        return fmt.Errorf("failed to get quote: %w", err)
-    }
+//     quote, err := s.alphaVantageClient.GetStockQuote(ctx, symbol)
+//     if err != nil {
+//         return fmt.Errorf("failed to get quote: %w", err)
+//     }
 
-    // Parse the latest trading day
-    tradingDay, err := time.Parse("2006-01-02", quote.LatestTradingDay)
-    if err != nil {
-        return fmt.Errorf("failed to parse trading day: %w", err)
-    }
+//     // Parse the latest trading day
+//     tradingDay, err := time.Parse("2006-01-02", quote.LatestTradingDay)
+//     if err != nil {
+//         return fmt.Errorf("failed to parse trading day: %w", err)
+//     }
 
-    // Parse numeric values
-    price, err := api.ParseFloat(quote.Price)
-    if err != nil {
-        return fmt.Errorf("failed to parse price: %w", err)
-    }
+//     // Parse numeric values
+//     price, err := api.ParseFloat(quote.Price)
+//     if err != nil {
+//         return fmt.Errorf("failed to parse price: %w", err)
+//     }
 
-    volume, err := api.ParseFloat(quote.Volume)
-    if err != nil {
-        return fmt.Errorf("failed to parse volume: %w", err)
-    }
+//     volume, err := api.ParseFloat(quote.Volume)
+//     if err != nil {
+//         return fmt.Errorf("failed to parse volume: %w", err)
+//     }
 
-    log.Printf("Storing latest quote for %s: Date=%s, Price=%.2f, Volume=%.0f", 
-        symbol, tradingDay.Format("2006-01-02"), price, volume)
+//     log.Printf("Storing latest quote for %s: Date=%s, Price=%.2f, Volume=%.0f", 
+//         symbol, tradingDay.Format("2006-01-02"), price, volume)
 
-    // Store in database (using the same price for open, high, low, close for latest quote)
-    err = s.stockRepo.StoreStockData(symbol, tradingDay, price, price, price, price, volume)
-    if err != nil {
-        return fmt.Errorf("failed to store quote data: %w", err)
-    }
+//     // Store in database (using the same price for open, high, low, close for latest quote)
+//     err = s.stockRepo.StoreStockData(symbol, tradingDay, price, price, price, price, volume)
+//     if err != nil {
+//         return fmt.Errorf("failed to store quote data: %w", err)
+//     }
 
-    log.Printf("Successfully stored latest quote for %s: $%.2f", symbol, price)
-    return nil
-}
+//     log.Printf("Successfully stored latest quote for %s: $%.2f", symbol, price)
+//     return nil
+// }
 
 // BatchExtractData extracts data for multiple symbols
-func (s *DataExtractionService) BatchExtractData(ctx context.Context, symbols []string) error {
+func (s *DataExtractionService) BatchExtractData(ctx context.Context, symbols []string, from time.Time, to time.Time) error {
     log.Printf("Starting batch extraction for %d symbols", len(symbols))
     
     for i, symbol := range symbols {
@@ -165,7 +161,7 @@ func (s *DataExtractionService) BatchExtractData(ctx context.Context, symbols []
             time.Sleep(12 * time.Second) // Alpha Vantage allows 5 requests per minute
         }
 
-        err := s.ExtractAndStoreStockData(ctx, symbol)
+        err := s.ExtractAndStoreStockData(ctx, symbol, from, to)
         if err != nil {
             log.Printf("Failed to extract data for %s: %v", symbol, err)
             continue

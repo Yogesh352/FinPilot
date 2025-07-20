@@ -21,6 +21,8 @@ func NewExtractionHandler(es *service.DataExtractionService) *ExtractionHandler 
 // ExtractStockDataRequest represents the request for extracting stock data
 type ExtractStockDataRequest struct {
     Symbol string `json:"symbol"`
+    From time.Time `json:"from`
+    To time.Time `json:"to`
 }
 
 type ExtractByExchangeRequest struct {
@@ -63,7 +65,7 @@ func (h *ExtractionHandler) ExtractStockData(w http.ResponseWriter, r *http.Requ
     defer cancel()
 
     // Extract data
-    err := h.extractionService.ExtractAndStoreStockData(ctx, req.Symbol)
+    err := h.extractionService.ExtractAndStoreStockData(ctx, req.Symbol, req.From, req.To)
     
     response := ExtractStockDataResponse{
         Symbol:    req.Symbol,
@@ -84,51 +86,53 @@ func (h *ExtractionHandler) ExtractStockData(w http.ResponseWriter, r *http.Requ
 }
 
 // ExtractLatestQuote extracts the latest quote for a symbol
-func (h *ExtractionHandler) ExtractLatestQuote(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+// func (h *ExtractionHandler) ExtractLatestQuote(w http.ResponseWriter, r *http.Request) {
+//     if r.Method != http.MethodPost {
+//         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+//         return
+//     }
 
-    var req ExtractStockDataRequest
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        return
-    }
+//     var req ExtractStockDataRequest
+//     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+//         http.Error(w, "Invalid request body", http.StatusBadRequest)
+//         return
+//     }
 
-    if req.Symbol == "" {
-        http.Error(w, "Symbol is required", http.StatusBadRequest)
-        return
-    }
+//     if req.Symbol == "" {
+//         http.Error(w, "Symbol is required", http.StatusBadRequest)
+//         return
+//     }
 
-    // Create context with timeout
-    ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-    defer cancel()
+//     // Create context with timeout
+//     ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+//     defer cancel()
 
-    // Extract latest quote
-    err := h.extractionService.ExtractLatestQuote(ctx, req.Symbol)
+//     // Extract latest quote
+//     err := h.extractionService.ExtractLatestQuote(ctx, req.Symbol)
     
-    response := ExtractStockDataResponse{
-        Symbol:    req.Symbol,
-        Timestamp: time.Now(),
-    }
+//     response := ExtractStockDataResponse{
+//         Symbol:    req.Symbol,
+//         Timestamp: time.Now(),
+//     }
 
-    if err != nil {
-        response.Status = "error"
-        response.Message = err.Error()
-        w.WriteHeader(http.StatusInternalServerError)
-    } else {
-        response.Status = "success"
-        response.Message = "Latest quote extracted successfully"
-    }
+//     if err != nil {
+//         response.Status = "error"
+//         response.Message = err.Error()
+//         w.WriteHeader(http.StatusInternalServerError)
+//     } else {
+//         response.Status = "success"
+//         response.Message = "Latest quote extracted successfully"
+//     }
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
-}
+//     w.Header().Set("Content-Type", "application/json")
+//     json.NewEncoder(w).Encode(response)
+// }
 
 // BatchExtractDataRequest represents the request for batch extraction
 type BatchExtractDataRequest struct {
     Symbols []string `json:"symbols"`
+    From    time.Time `json:"from`
+    To    time.Time `json:"to`
 }
 
 // BatchExtractDataResponse represents the response for batch extraction
@@ -163,7 +167,7 @@ func (h *ExtractionHandler) BatchExtractData(w http.ResponseWriter, r *http.Requ
     defer cancel()
 
     // Extract data for all symbols
-    err := h.extractionService.BatchExtractData(ctx, req.Symbols)
+    err := h.extractionService.BatchExtractData(ctx, req.Symbols, req.From, req.To)
     
     response := BatchExtractDataResponse{
         Status:    "success",

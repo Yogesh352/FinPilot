@@ -18,12 +18,12 @@ func (s *StockService) GetStockSummary(symbol string) (float64, error) {
 }
 
 // GetStockData gets historical stock data for a symbol within a date range
-func (s *StockService) GetStockData(symbol string, startDate, endDate time.Time) ([]repository.StockData, error) {
+func (s *StockService) GetStockData(symbol string, startDate, endDate time.Time) ([]repository.StockIntraDayData, error) {
     return s.repo.GetStockData(symbol, startDate, endDate)
 }
 
 // GetLatestStockData gets the most recent stock data for a symbol
-func (s *StockService) GetLatestStockData(symbol string) (*repository.StockData, error) {
+func (s *StockService) GetLatestStockData(symbol string) (*repository.StockIntraDayData, error) {
     return s.repo.GetLatestStockData(symbol)
 }
 

@@ -1,5 +1,5 @@
--- Create stocks_raw table for storing financial data
-CREATE TABLE IF NOT EXISTS stocks_raw (
+-- Create stocks_intraday table for storing financial data
+CREATE TABLE IF NOT EXISTS stocks_intraday (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(10) NOT NULL REFERENCES stock_symbols(symbol) ON DELETE CASCADE,
     date TIMESTAMP NOT NULL,
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS stocks_raw (
 );
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_stocks_raw_symbol ON stocks_raw(symbol);
-CREATE INDEX IF NOT EXISTS idx_stocks_raw_date ON stocks_raw(date);
-CREATE INDEX IF NOT EXISTS idx_stocks_raw_symbol_date ON stocks_raw(symbol, date);
+CREATE INDEX IF NOT EXISTS idx_stocks_intraday_symbol ON stocks_intraday(symbol);
+CREATE INDEX IF NOT EXISTS idx_stocks_intraday_date ON stocks_intraday(date);
+CREATE INDEX IF NOT EXISTS idx_stocks_intraday_symbol_date ON stocks_intraday(symbol, date);
 
 -- Create a function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -30,17 +30,17 @@ END;
 $$ language 'plpgsql';
 
 -- Create trigger to automatically update updated_at
-CREATE TRIGGER update_stocks_raw_updated_at 
-    BEFORE UPDATE ON stocks_raw 
+CREATE TRIGGER update_stocks_intraday_updated_at 
+    BEFORE UPDATE ON stocks_intraday 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Add comments for documentation
-COMMENT ON TABLE stocks_raw IS 'Raw stock data from external APIs';
-COMMENT ON COLUMN stocks_raw.symbol IS 'Stock symbol (e.g., AAPL, GOOGL)';
-COMMENT ON COLUMN stocks_raw.date IS 'Trading date';
-COMMENT ON COLUMN stocks_raw.open IS 'Opening price';
-COMMENT ON COLUMN stocks_raw.high IS 'Highest price during the day';
-COMMENT ON COLUMN stocks_raw.low IS 'Lowest price during the day';
-COMMENT ON COLUMN stocks_raw.close IS 'Closing price';
-COMMENT ON COLUMN stocks_raw.volume IS 'Trading volume'; 
+COMMENT ON TABLE stocks_intraday IS 'Raw stock data from external APIs';
+COMMENT ON COLUMN stocks_intraday.symbol IS 'Stock symbol (e.g., AAPL, GOOGL)';
+COMMENT ON COLUMN stocks_intraday.date IS 'Trading date';
+COMMENT ON COLUMN stocks_intraday.open IS 'Opening price';
+COMMENT ON COLUMN stocks_intraday.high IS 'Highest price during the day';
+COMMENT ON COLUMN stocks_intraday.low IS 'Lowest price during the day';
+COMMENT ON COLUMN stocks_intraday.close IS 'Closing price';
+COMMENT ON COLUMN stocks_intraday.volume IS 'Trading volume'; 

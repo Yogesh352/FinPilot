@@ -11,7 +11,17 @@ type StockRepository struct {
     db *sql.DB
 }
 
-type StockData struct {
+type PolygonAgg struct {
+    Close     float64 `json:"c"`
+    High      float64 `json:"h"`
+    Low       float64 `json:"l"`
+    Open      float64 `json:"o"`
+    Timestamp int64   `json:"t"`
+    Volume    float64   `json:"v"`
+    VWAP      float64 `json:"vw"`
+}
+
+type StockIntraDayData struct {
     Symbol    string    `json:"symbol"`
     Date      time.Time `json:"date"`
     Open      float64   `json:"open"`
@@ -51,7 +61,7 @@ func (r *StockRepository) StoreStockData(symbol string, date time.Time, open, hi
     log.Printf("Attempting to store data for %s on %s", symbol, date.Format("2006-01-02"))
     
     query := `
-        INSERT INTO stocks_raw (symbol, date, open, high, low, close, volume, created_at)
+        INSERT INTO stocks_intraday (symbol, date, open, high, low, close, volume, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (symbol, date) DO UPDATE SET
             open = EXCLUDED.open,
@@ -224,7 +234,7 @@ func (r *StockRepository) GetLatestPrice(symbol string) (float64, error) {
     var price float64
     err := r.db.QueryRow(`
         SELECT close 
-        FROM stocks_raw 
+        FROM stocks_intraday 
         WHERE symbol = $1 
         ORDER BY date DESC 
         LIMIT 1
@@ -238,10 +248,10 @@ func (r *StockRepository) GetLatestPrice(symbol string) (float64, error) {
 }
 
 // GetStockData gets stock data for a symbol within a date range
-func (r *StockRepository) GetStockData(symbol string, startDate, endDate time.Time) ([]StockData, error) {
+func (r *StockRepository) GetStockData(symbol string, startDate, endDate time.Time) ([]StockIntraDayData, error) {
     query := `
         SELECT symbol, date, open, high, low, close, volume, created_at
-        FROM stocks_raw
+        FROM stocks_intraday
         WHERE symbol = $1 AND date BETWEEN $2 AND $3
         ORDER BY date DESC
     `
@@ -252,9 +262,9 @@ func (r *StockRepository) GetStockData(symbol string, startDate, endDate time.Ti
     }
     defer rows.Close()
     
-    var data []StockData
+    var data []StockIntraDayData
     for rows.Next() {
-        var record StockData
+        var record StockIntraDayData
         err := rows.Scan(
             &record.Symbol,
             &record.Date,
@@ -275,16 +285,16 @@ func (r *StockRepository) GetStockData(symbol string, startDate, endDate time.Ti
 }
 
 // GetLatestStockData gets the most recent stock data for a symbol
-func (r *StockRepository) GetLatestStockData(symbol string) (*StockData, error) {
+func (r *StockRepository) GetLatestStockData(symbol string) (*StockIntraDayData, error) {
     query := `
         SELECT symbol, date, open, high, low, close, volume, created_at
-        FROM stocks_raw
+        FROM stocks_intraday
         WHERE symbol = $1
         ORDER BY date DESC
         LIMIT 1
     `
     
-    var record StockData
+    var record StockIntraDayData
     err := r.db.QueryRow(query, symbol).Scan(
         &record.Symbol,
         &record.Date,
@@ -305,7 +315,7 @@ func (r *StockRepository) GetLatestStockData(symbol string) (*StockData, error) 
 
 // GetSymbols gets all unique symbols in the database
 func (r *StockRepository) GetSymbols() ([]string, error) {
-    query := `SELECT DISTINCT symbol FROM stocks_raw ORDER BY symbol`
+    query := `SELECT DISTINCT symbol FROM stocks_intraday ORDER BY symbol`
     
     rows, err := r.db.Query(query)
     if err != nil {
@@ -364,7 +374,7 @@ func (r *StockRepository) GetSymbolWithMetadata(symbol string) (string, error) {
 
 // DeleteOldData deletes stock data older than the specified date
 func (r *StockRepository) DeleteOldData(beforeDate time.Time) error {
-    query := `DELETE FROM stocks_raw WHERE date < $1`
+    query := `DELETE FROM stocks_intraday WHERE date < $1`
     
     result, err := r.db.Exec(query, beforeDate)
     if err != nil {

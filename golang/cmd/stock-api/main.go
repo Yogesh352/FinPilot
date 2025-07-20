@@ -27,12 +27,13 @@ func main() {
     // Initialize API clients
     alphaVantageClient := api.NewAlphaVantageClient(cfg.AlphaVantageAPIKey, cfg.APIRequestTimeout)
     finnHubClient := api.NewFinnhubClient(cfg.FinnhubAPIKey, cfg.APIRequestTimeout)
+    polygonClient := api.NewPolygonClient(cfg.PolygonAPIKey, cfg.APIRequestTimeout)
 
 
     // Initialize repositories and services
     stockRepo := repository.NewStockRepository(db)
     stockService := service.NewStockService(stockRepo)
-    dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient,stockRepo)
+    dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient, polygonClient, stockRepo)
 
     // Initialize handlers
     stockHandler := handler.NewStockHandler(stockService)
@@ -53,7 +54,7 @@ func main() {
     
     // Data extraction endpoints
     mux.HandleFunc("/api/extract/stock", extractionHandler.ExtractStockData)
-    mux.HandleFunc("/api/extract/quote", extractionHandler.ExtractLatestQuote)
+    // mux.HandleFunc("/api/extract/quote", extractionHandler.ExtractLatestQuote)
     mux.HandleFunc("/api/extract/batch", extractionHandler.BatchExtractData)
     mux.HandleFunc("/api/extract/status", extractionHandler.GetExtractionStatus)
     mux.HandleFunc("/api/extract/symbols", extractionHandler.ExtractSymbols)
