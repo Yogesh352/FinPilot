@@ -1,7 +1,7 @@
 -- Create stocks_raw table for storing financial data
 CREATE TABLE IF NOT EXISTS stocks_raw (
     id SERIAL PRIMARY KEY,
-    symbol VARCHAR(10) NOT NULL,
+    symbol VARCHAR(10) NOT NULL REFERENCES stock_symbols(symbol) ON DELETE CASCADE,
     date TIMESTAMP NOT NULL,
     open DECIMAL(10,4) NOT NULL,
     high DECIMAL(10,4) NOT NULL,

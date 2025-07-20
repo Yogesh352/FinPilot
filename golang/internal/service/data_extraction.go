@@ -176,6 +176,44 @@ func (s *DataExtractionService) BatchExtractData(ctx context.Context, symbols []
     return nil
 } 
 
+func (s *DataExtractionService) ExtractAndStoreSymbols(ctx context.Context, exchange string) error {
+    stocks, err := s.finnhubClient.GetStockSymbols(ctx, exchange)
+    if err != nil {
+        return fmt.Errorf("failed to get stock symbols: %w", err)
+    }
+
+    storedCount := 0
+    errorCount := 0 
+    for _, stock := range stocks {
+        
+        symbolData := &repository.StockSymbol{
+            Symbol:        stock.Symbol,
+        }
+
+        if stock.Type == "Common Stock" {            
+            log.Printf("Storing symbol data for %s: %s", stock.Symbol, stock.Description)
+        
+            err = s.stockRepo.StoreSymbol(symbolData)
+            if err != nil {
+                log.Printf("Failed to store symbol for %s: %v", stock.Symbol, err)
+                errorCount++
+                continue
+            }
+            
+            storedCount++
+            log.Printf("Successfully stored symbol for %s", stock.Symbol)
+        }
+    }
+
+    log.Printf("Completed symbols extraction for exchange %s - Stored: %d, Errors: %d", exchange, storedCount, errorCount)
+    
+    if storedCount == 0 {
+        return fmt.Errorf("no symbol was stored for exchange %s", exchange)
+    }
+    
+    return nil
+}
+
 
 // ExtractAndStoreStockMetaData fetches stock metadata from Finnhub API and stores it in the database
 func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context, exchange string) error {

@@ -1,17 +1,16 @@
 package repository
 
 import (
-    "database/sql"
-    "fmt"
-    "log"
-    "time"
+	"database/sql"
+	"fmt"
+	"log"
+	"time"
 )
 
 type StockRepository struct {
     db *sql.DB
 }
 
-// StockData represents a complete stock data record
 type StockData struct {
     Symbol    string    `json:"symbol"`
     Date      time.Time `json:"date"`
@@ -23,7 +22,11 @@ type StockData struct {
     CreatedAt time.Time `json:"created_at"`
 }
 
-// StockMetadata represents stock metadata information
+type StockSymbol struct {
+    Symbol        string    `json:"symbol"`
+    CreatedAt     time.Time `json:"created_at"`
+}
+
 type StockMetadata struct {
     Symbol        string    `json:"symbol"`
     CompanyName   *string    `json:"company_name"`
@@ -67,6 +70,27 @@ func (r *StockRepository) StoreStockData(symbol string, date time.Time, open, hi
     
     rowsAffected, _ := result.RowsAffected()
     log.Printf("Successfully stored data for %s on %s (rows affected: %d)", symbol, date.Format("2006-01-02"), rowsAffected)
+    
+    return nil
+}
+
+func (r *StockRepository) StoreSymbol(symbol *StockSymbol) error {
+    log.Printf("Attempting to store symbol data for %s", symbol)
+    
+    query := `
+        INSERT INTO stock_symbols (symbol, created_at)
+        VALUES ($1, $2)
+        ON CONFLICT (symbol) DO NOTHING
+    `
+    
+    result, err := r.db.Exec(query, symbol.Symbol, time.Now())
+    if err != nil {
+        log.Printf("Database error storing data for %s: %v", symbol, err)
+        return fmt.Errorf("failed to store symbol data: %w", err)
+    }
+    
+    rowsAffected, _ := result.RowsAffected()
+    log.Printf("Successfully stored data for %s (rows affected: %d)", symbol.Symbol, rowsAffected)
     
     return nil
 }

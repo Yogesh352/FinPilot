@@ -248,6 +248,47 @@ func (h *ExtractionHandler) ExtractStockMetadata(w http.ResponseWriter, r *http.
     json.NewEncoder(w).Encode(response)
 }
 
+func (h *ExtractionHandler) ExtractSymbols(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req ExtractByExchangeRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if req.Exchange == "" {
+        http.Error(w, "Exchange is required", http.StatusBadRequest)
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
+    defer cancel()
+
+    err := h.extractionService.ExtractAndStoreSymbols(ctx, req.Exchange)
+
+    response := map[string]interface{}{
+        "exchange":  req.Exchange,
+        "timestamp": time.Now(),
+    }
+
+    if err != nil {
+        response["status"] = "error"
+        response["message"] = err.Error()
+        w.WriteHeader(http.StatusInternalServerError)
+    } else {
+        response["status"] = "success"
+        response["message"] = "Symbols extracted successfully"
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+
 func (h *ExtractionHandler) ExtractCompanyProfiles(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

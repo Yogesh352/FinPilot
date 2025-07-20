@@ -1,7 +1,7 @@
 -- Create stocks_metadata table for storing stock metadata
 CREATE TABLE IF NOT EXISTS stocks_metadata (
     id SERIAL PRIMARY KEY,
-    symbol VARCHAR(10) NOT NULL UNIQUE,
+    symbol VARCHAR(10) NOT NULL UNIQUE REFERENCES stock_symbols(symbol) ON DELETE CASCADE,
     company_name VARCHAR(255),
     industry VARCHAR(100),
     exchange VARCHAR(50),

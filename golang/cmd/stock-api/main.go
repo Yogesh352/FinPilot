@@ -1,18 +1,18 @@
 package main
 
 import (
-    "log"
-    "net/http"
-    "os"
-    "time"
+	"log"
+	"net/http"
+	"os"
+	"time"
 
-    "stock-api/internal/api"
-    "stock-api/internal/config"
-    "stock-api/internal/handler"
-    "stock-api/internal/repository"
-    "stock-api/internal/service"
+	"stock-api/internal/api"
+	"stock-api/internal/config"
+	"stock-api/internal/handler"
+	"stock-api/internal/repository"
+	"stock-api/internal/service"
 
-    _ "github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -56,6 +56,7 @@ func main() {
     mux.HandleFunc("/api/extract/quote", extractionHandler.ExtractLatestQuote)
     mux.HandleFunc("/api/extract/batch", extractionHandler.BatchExtractData)
     mux.HandleFunc("/api/extract/status", extractionHandler.GetExtractionStatus)
+    mux.HandleFunc("/api/extract/symbols", extractionHandler.ExtractSymbols)
     mux.HandleFunc("/api/extract/stockmetadata", extractionHandler.ExtractStockMetadata)
     mux.HandleFunc("/api/extract/companyprofile", extractionHandler.ExtractCompanyProfiles)
     
@@ -84,6 +85,7 @@ func main() {
     log.Printf("  POST /api/extract/quote - Extract latest quote")
     log.Printf("  POST /api/extract/batch - Batch extract data")
     log.Printf("  GET  /api/extract/status?symbol=AAPL - Get extraction status")
+    log.Printf("  POST /api/extract/symbols - Extract stock symbols by exchange")
     log.Printf("  POST /api/extract/stockmetadata - Extract stock metadata by exchange")
     log.Printf("  POST /api/extract/companyprofile - Extract company profile")
     
