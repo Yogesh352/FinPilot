@@ -57,7 +57,7 @@ type TimeSeriesResponse struct {
         OutputSize   string `json:"4. Output Size"`
         TimeZone     string `json:"5. Time Zone"`
     } `json:"Meta Data"`
-    TimeSeries map[string]TimeSeriesData `json:"Time Series (Daily)"`
+    TimeSeries map[string]TimeSeriesData `json:"Time Series (5min)"`
 }
 
 // GetStockQuote retrieves the latest stock quote
@@ -83,16 +83,15 @@ func (c *AlphaVantageClient) GetStockQuote(ctx context.Context, symbol string) (
     return &response.GlobalQuote, nil
 }
 
-// GetDailyTimeSeries retrieves daily time series data
-func (c *AlphaVantageClient) GetDailyTimeSeries(ctx context.Context, symbol string) (*TimeSeriesResponse, error) {
+func (c *AlphaVantageClient) GetIntradayTimeSeries(ctx context.Context, symbol string) (*TimeSeriesResponse, error) {
     log.Printf("Fetching daily time series for symbol: %s", symbol)
-    log.Printf("API Key: %s", c.apiKey)
     
     req := &Request{
         Method: "GET",
         Path:   "/query",
         Query: map[string]string{
-            "function": "TIME_SERIES_DAILY",
+            "function": "TIME_SERIES_INTRADAY",
+            "interval": "5min",
             "symbol":   symbol,
             "apikey":   c.apiKey,
         },

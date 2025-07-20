@@ -31,7 +31,7 @@ func (s *DataExtractionService) ExtractAndStoreStockData(ctx context.Context, sy
     log.Printf("Starting data extraction for symbol: %s", symbol)
 
     // Get time series data from Alpha Vantage
-    timeSeries, err := s.alphaVantageClient.GetDailyTimeSeries(ctx, symbol)
+    timeSeries, err := s.alphaVantageClient.GetIntradayTimeSeries(ctx, symbol)
     if err != nil {
         return fmt.Errorf("failed to get time series data: %w", err)
     }
@@ -46,7 +46,7 @@ func (s *DataExtractionService) ExtractAndStoreStockData(ctx context.Context, sy
         log.Printf("Processing data for %s on %s", symbol, date)
         
         // Parse the date
-        parsedDate, err := time.Parse("2006-01-02", date)
+        parsedDate, err := time.Parse("2006-01-02 15:04:05", date)
         if err != nil {
             log.Printf("Failed to parse date %s for symbol %s: %v", date, symbol, err)
             errorCount++
