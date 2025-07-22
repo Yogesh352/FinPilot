@@ -85,8 +85,8 @@ func (s *DataExtractionService) ExtractAndStoreStockData(ctx context.Context, sy
         //     continue
         // }
 
-        log.Printf("Storing data for %s on %s: O=%.2f, H=%.2f, L=%.2f, C=%.2f, V=%.0f", 
-            symbol, data.Timestamp, data.Open, data.High, data.Low, data.Close, data.Volume)
+        // log.Printf("Storing data for %s on %s: O=%.2f, H=%.2f, L=%.2f, C=%.2f, V=%.0f", 
+        //     symbol, data.Timestamp, data.Open, data.High, data.Low, data.Close, data.Volume)
 
         // Store in database
         err = s.stockRepo.StoreStockData(symbol, parsedDate, data.Open, data.High, data.Low, data.Close, data.Volume)
@@ -156,10 +156,10 @@ func (s *DataExtractionService) BatchExtractData(ctx context.Context, symbols []
         log.Printf("Processing symbol %d/%d: %s", i+1, len(symbols), symbol)
         
         // Add delay between requests to respect rate limits
-        if i > 0 {
-            log.Printf("Waiting 12 seconds before next request...")
-            time.Sleep(12 * time.Second) // Alpha Vantage allows 5 requests per minute
-        }
+        // if i > 0 {
+        //     log.Printf("Waiting 12 seconds before next request...")
+        //     time.Sleep(12 * time.Second) // Alpha Vantage allows 5 requests per minute
+        // }
 
         err := s.ExtractAndStoreStockData(ctx, symbol, from, to)
         if err != nil {
@@ -180,10 +180,13 @@ func (s *DataExtractionService) ExtractAndStoreSymbols(ctx context.Context, exch
 
     storedCount := 0
     errorCount := 0 
+    batchIdCount := 0
     for _, stock := range stocks {
         
+        batchId := batchIdCount / 5
         symbolData := &repository.StockSymbol{
             Symbol:        stock.Symbol,
+            BatchId:       batchId,
         }
 
         if stock.Type == "Common Stock" {            
@@ -197,6 +200,7 @@ func (s *DataExtractionService) ExtractAndStoreSymbols(ctx context.Context, exch
             }
             
             storedCount++
+            batchIdCount++
             log.Printf("Successfully stored symbol for %s", stock.Symbol)
         }
     }
@@ -224,10 +228,8 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
     // Process and store each stock symbol
     storedCount := 0
     errorCount := 0 
-    batchIdCount:= 1
     for _, stock := range stocks {
         log.Printf("Processing metadata for %s", stock.Symbol)
-        batchId := batchIdCount / 5
         
         // Create metadata object from Finnhub data
         metadata := &repository.StockMetadata{
@@ -242,8 +244,9 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
             Description:   stock.Description,
             Website:       nil,
             Type:          stock.Type,
-            BatchId:       batchId,
         }
+
+        
 
         // Will remove this and will make it a queued job
         if stock.Type == "Common Stock" {            
@@ -257,7 +260,6 @@ func (s *DataExtractionService) ExtractAndStoreStockMetaData(ctx context.Context
             }
             
             storedCount++
-            batchIdCount++
             log.Printf("Successfully stored metadata for %s", stock.Symbol)
         }
     }
@@ -312,7 +314,6 @@ func (s *DataExtractionService) ExtractAndStoreCompanyData(ctx context.Context, 
 			Description:   existingStock.Description,
 			Website:       util.StrPtr(companyProfile.Weburl),
 			Type:          existingStock.Type,
-            BatchId:       existingStock.BatchId,
 		}
 
 		if existingStock.Type == "Common Stock" {

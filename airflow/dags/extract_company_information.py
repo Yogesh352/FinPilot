@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 import requests
+from airflow.exceptions import AirflowFailException
 from datetime import datetime, timedelta
 
 default_args = {
@@ -26,13 +27,12 @@ def extract_next_batch():
     if last_run_batch_idx != "":
         batch_id = last_run_batch_idx + 1
 
-    # Step 2: Get the next 5 symbols
     cursor.execute(
         """
-    SELECT symbol FROM stocks_metadata
+    SELECT symbol FROM stock_symbols
     WHERE batch_id = %s
     """,
-        (batch_id,),  # comma makes it a tuple
+        (batch_id,), 
     )
     symbols = [row[0] for row in cursor.fetchall()]
 
@@ -40,7 +40,6 @@ def extract_next_batch():
         print("All symbols processed.")
         return
 
-    # Call batch company extraction api
     print(f"Extracting for: {symbols}")
     response = requests.post(
         "http://localhost:8081/api/extract/companyprofile", json={"symbols": symbols}
@@ -55,6 +54,7 @@ def extract_next_batch():
         print(f"Progress updated to {batch_id}")
     else:
         print(f"Failed for {symbols}: {response.status_code} {response.text}")
+        raise AirflowFailException(response.text)
 
 
 with DAG(

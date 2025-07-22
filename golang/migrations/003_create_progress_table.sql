@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS airflow_progress_tracker (
     id SERIAL PRIMARY KEY,
-    last_run_batch_idx INTEGER UNIQUE,
+    last_run_batch_idx INTEGER,
     airflow_dag VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

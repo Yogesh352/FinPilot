@@ -34,6 +34,7 @@ type StockIntraDayData struct {
 
 type StockSymbol struct {
     Symbol        string    `json:"symbol"`
+    BatchId		  int		`json:"batch_id"`
     CreatedAt     time.Time `json:"created_at"`
 }
 
@@ -47,7 +48,6 @@ type StockMetadata struct {
     Description   string    `json:"description"`
     Website       *string    `json:"website"`
     Type          string    `json:"type"`
-	BatchId		  int		`json:"batch_id"`
     CreatedAt     time.Time `json:"created_at"`
     UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -63,13 +63,19 @@ func (r *StockRepository) StoreStockData(symbol string, date time.Time, open, hi
     query := `
         INSERT INTO stocks_intraday (symbol, date, open, high, low, close, volume, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (symbol, date) DO UPDATE SET
+        ON CONFLICT (symbol, date) DO UPDATE SET 
             open = EXCLUDED.open,
             high = EXCLUDED.high,
             low = EXCLUDED.low,
             close = EXCLUDED.close,
             volume = EXCLUDED.volume,
-            updated_at = $8
+            updated_at = EXCLUDED.created_at
+        WHERE 
+            stocks_intraday.open IS DISTINCT FROM EXCLUDED.open OR
+            stocks_intraday.high IS DISTINCT FROM EXCLUDED.high OR
+            stocks_intraday.low IS DISTINCT FROM EXCLUDED.low OR
+            stocks_intraday.close IS DISTINCT FROM EXCLUDED.close OR
+            stocks_intraday.volume IS DISTINCT FROM EXCLUDED.volume;
     `
     
     result, err := r.db.Exec(query, symbol, date, open, high, low, close, volume, time.Now())
@@ -85,15 +91,15 @@ func (r *StockRepository) StoreStockData(symbol string, date time.Time, open, hi
 }
 
 func (r *StockRepository) StoreSymbol(symbol *StockSymbol) error {
-    log.Printf("Attempting to store symbol data for %s", symbol)
+    log.Printf("Attempting to store symbol data for %s", symbol.Symbol)
     
     query := `
-        INSERT INTO stock_symbols (symbol, created_at)
-        VALUES ($1, $2)
+        INSERT INTO stock_symbols (symbol, batch_id, created_at)
+        VALUES ($1, $2, $3)
         ON CONFLICT (symbol) DO NOTHING
     `
     
-    result, err := r.db.Exec(query, symbol.Symbol, time.Now())
+    result, err := r.db.Exec(query, symbol.Symbol, symbol.BatchId, time.Now())
     if err != nil {
         log.Printf("Database error storing data for %s: %v", symbol, err)
         return fmt.Errorf("failed to store symbol data: %w", err)
@@ -112,8 +118,8 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
     query := `
         INSERT INTO stocks_metadata (
             symbol, company_name, industry, exchange, currency,
-            market_cap, description, website, type, batch_id, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            market_cap, description, website, type, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (symbol) DO UPDATE SET
             symbol = EXCLUDED.symbol,
             company_name = EXCLUDED.company_name,
@@ -124,7 +130,6 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
             description = EXCLUDED.description,
             website = EXCLUDED.website,
             type = EXCLUDED.type,
-			batch_id = EXCLUDED.batch_id,
             created_at = EXCLUDED.created_at,
             updated_at = EXCLUDED.updated_at
     `
@@ -140,7 +145,6 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
         metadata.Description,
         &metadata.Website,
         metadata.Type,
-		metadata.BatchId,
         now,
         now,
     )
@@ -160,7 +164,7 @@ func (r *StockRepository) StoreStockMetadata(metadata *StockMetadata) error {
 func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error) {
     query := `
         SELECT symbol, company_name, industry, exchange, currency,
-               market_cap, description, website, type, batch_id, created_at, updated_at
+               market_cap, description, website, type, created_at, updated_at
         FROM stocks_metadata
         WHERE symbol = $1
     `
@@ -176,7 +180,6 @@ func (r *StockRepository) GetStockMetadata(symbol string) (*StockMetadata, error
         &metadata.Description,
         &metadata.Website,
         &metadata.Type,
-		&metadata.BatchId,
         &metadata.CreatedAt,
         &metadata.UpdatedAt,
     )
@@ -216,7 +219,6 @@ func (r *StockRepository) GetAllStockMetadata() ([]StockMetadata, error) {
             &record.Description,
             &record.Website,
             &record.Type,
-			&record.BatchId,
             &record.CreatedAt,
             &record.UpdatedAt,
         )

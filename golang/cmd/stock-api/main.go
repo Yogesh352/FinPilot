@@ -87,7 +87,7 @@ func main() {
     log.Printf("  POST /api/extract/batch - Batch extract data")
     log.Printf("  GET  /api/extract/status?symbol=AAPL - Get extraction status")
     log.Printf("  POST /api/extract/symbols - Extract stock symbols by exchange")
-    log.Printf("  POST /api/extract/stockmetadata - Extract stock metadata by exchange")
+    log.Printf("  POST batch_id - Extract stock metadata by exchange")
     log.Printf("  POST /api/extract/companyprofile - Extract company profile")
     
     log.Fatal(http.ListenAndServe(":"+port, mux))
