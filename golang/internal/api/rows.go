@@ -98,7 +98,6 @@ func (c *RowsClient) FetchRows(ctx context.Context, spreadsheetId, tableId strin
                 tx.Account = fmt.Sprint(cell.Value)
             }
         }
-		log.Printf("Transaction %s", tx.Account)
         transactions = append(transactions, tx)
     }
 
