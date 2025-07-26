@@ -3,10 +3,12 @@ package service
 import (
     "time"
     "stock-api/internal/repository"
+    "stock-api/internal/util"
 )
 
 type StockService struct {
     repo *repository.StockRepository
+    scoreRepo *repository.StockScoreRepository
 }
 
 func NewStockService(repo *repository.StockRepository) *StockService {
@@ -55,4 +57,29 @@ func (s *StockService) GetSymbolsWithMetadata() ([]string, error) {
 // DeleteStockMetadata deletes metadata for a specific symbol
 func (s *StockService) DeleteStockMetadata(symbol string) error {
     return s.repo.DeleteStockMetadata(symbol)
+}
+
+
+func (s *StockService) CalculateLongTermScoreCard(symbols []string) {
+    for _, symbol := range symbols {
+        overview, _ := s.scoreRepo.GetOverview(symbol)
+        income, _ := s.scoreRepo.GetIncomeStatement(symbol)
+        balance, _ := s.scoreRepo.GetBalanceSheet(symbol)
+
+        card := repository.Scorecard{
+            Symbol:          symbol,
+            CompanyName:     overview.Name,
+            PERatio:         overview.PERatio,
+            PEGRatio:        overview.PEGRatio,
+            PriceToBook:     overview.PriceToBook,
+            ROE_TTM:         overview.ReturnOnEquityTTM,
+            OperatingMargin: overview.OperatingMargin,
+            ProfitMargin:    overview.ProfitMargin,
+            DividendYield:   overview.DividendYield,
+            Beta:            overview.Beta,
+            Revenue5YGrowth: util.Calculate5YRevenueGrowth(income),
+            HistoricalROE:   util.CalculateHistoricalROE(income, balance),
+        }
+        s.scoreRepo.StoreStockScorecard(&card);
+    }
 }

@@ -16,15 +16,17 @@ type DataExtractionService struct {
     finnhubClient      *api.FinnhubClient
     polygonClient      *api.PolygonClient
     stockRepo          *repository.StockRepository
+    stockScoreRepo     *repository.StockScoreRepository
 }
 
 // NewDataExtractionService creates a new data extraction service
-func NewDataExtractionService(alphaVantageClient *api.AlphaVantageClient, finnhubClient *api.FinnhubClient, polygonClient *api.PolygonClient, stockRepo *repository.StockRepository) *DataExtractionService {
+func NewDataExtractionService(alphaVantageClient *api.AlphaVantageClient, finnhubClient *api.FinnhubClient, polygonClient *api.PolygonClient, stockRepo *repository.StockRepository, stockScoreRepo *repository.StockScoreRepository) *DataExtractionService {
     return &DataExtractionService{
         alphaVantageClient: alphaVantageClient,
         finnhubClient:      finnhubClient,
         polygonClient:      polygonClient,
         stockRepo:          stockRepo,
+        stockScoreRepo:     stockScoreRepo,
     }
 }
 
@@ -334,6 +336,66 @@ func (s *DataExtractionService) ExtractAndStoreCompanyData(ctx context.Context, 
 	if storedCount == 0 {
 		return fmt.Errorf("no company profile data was stored for provided symbols")
 	}
+
+	return nil
+}
+
+func (s *DataExtractionService) BatchExtractAndStoreStockOverview(ctx context.Context, symbols []string) error {
+	storedCount := 0
+	errorCount := 0
+
+	for _, symbol := range symbols {
+		overview, err := s.alphaVantageClient.GetOverview(ctx, symbol)
+		if err != nil {
+			log.Printf("failed to get overview data for %s: %v", symbol, err)
+			errorCount++
+			continue
+		}
+
+        s.stockScoreRepo.StoreOverview(overview)
+        storedCount++
+        log.Printf("Successfully stored overview data for %s", symbol)
+    }
+
+	return nil
+}
+
+func (s *DataExtractionService) BatchExtractAndStoreStockIncomeStatment(ctx context.Context, symbols []string) error {
+	storedCount := 0
+	errorCount := 0
+
+	for _, symbol := range symbols {
+		incomeStatement, err := s.alphaVantageClient.GetIncomeStatement(ctx, symbol)
+		if err != nil {
+			log.Printf("failed to get income data for %s: %v", symbol, err)
+			errorCount++
+			continue
+		}
+
+        s.stockScoreRepo.StoreIncomeStatement(symbol, incomeStatement)
+        storedCount++
+        log.Printf("Successfully stored income data for %s", symbol)
+    }
+
+	return nil
+}
+
+func (s *DataExtractionService) BatchExtractAndStoreStockBalanceStatement(ctx context.Context, symbols []string) error {
+	storedCount := 0
+	errorCount := 0
+
+	for _, symbol := range symbols {
+		balanceSheet, err := s.alphaVantageClient.GetBalanceSheet(ctx, symbol)
+		if err != nil {
+			log.Printf("failed to get balance sheet data for %s: %v", symbol, err)
+			errorCount++
+			continue
+		}
+
+        s.stockScoreRepo.StoreBalanceSheet(symbol, balanceSheet)
+        storedCount++
+        log.Printf("Successfully stored balance sheet data for %s", symbol)
+    }
 
 	return nil
 }

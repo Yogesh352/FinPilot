@@ -332,3 +332,123 @@ func (h *ExtractionHandler) ExtractCompanyProfiles(w http.ResponseWriter, r *htt
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(response)
 }
+
+func (h *ExtractionHandler) ExtractCompanyOverviews(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req ExtractBySymbolsRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if len(req.Symbols) == 0 {
+        http.Error(w, "At least one symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
+    defer cancel()
+
+    err := h.extractionService.BatchExtractAndStoreStockOverview(ctx, req.Symbols)
+
+    response := map[string]interface{}{
+        "symbols":   req.Symbols,
+        "timestamp": time.Now(),
+    }
+
+    if err != nil {
+        response["status"] = "error"
+        response["message"] = err.Error()
+        w.WriteHeader(http.StatusInternalServerError)
+    } else {
+        response["status"] = "success"
+        response["message"] = "Company overviews extracted successfully"
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+func (h *ExtractionHandler) ExtractCompanyIncomeStatements(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req ExtractBySymbolsRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if len(req.Symbols) == 0 {
+        http.Error(w, "At least one symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
+    defer cancel()
+
+    err := h.extractionService.BatchExtractAndStoreStockIncomeStatment(ctx, req.Symbols)
+
+    response := map[string]interface{}{
+        "symbols":   req.Symbols,
+        "timestamp": time.Now(),
+    }
+
+    if err != nil {
+        response["status"] = "error"
+        response["message"] = err.Error()
+        w.WriteHeader(http.StatusInternalServerError)
+    } else {
+        response["status"] = "success"
+        response["message"] = "Company income statments extracted successfully"
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+func (h *ExtractionHandler) ExtractCompanyBalanceSheets(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req ExtractBySymbolsRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if len(req.Symbols) == 0 {
+        http.Error(w, "At least one symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
+    defer cancel()
+
+    err := h.extractionService.BatchExtractAndStoreStockBalanceStatement(ctx, req.Symbols)
+
+    response := map[string]interface{}{
+        "symbols":   req.Symbols,
+        "timestamp": time.Now(),
+    }
+
+    if err != nil {
+        response["status"] = "error"
+        response["message"] = err.Error()
+        w.WriteHeader(http.StatusInternalServerError)
+    } else {
+        response["status"] = "success"
+        response["message"] = "Company income statments extracted successfully"
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}

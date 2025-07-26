@@ -52,6 +52,8 @@ type StockMetadata struct {
     UpdatedAt     time.Time `json:"updated_at"`
 }
 
+
+
 func NewStockRepository(db *sql.DB) *StockRepository {
     return &StockRepository{db: db}
 }

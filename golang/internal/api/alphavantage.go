@@ -60,6 +60,34 @@ type TimeSeriesResponse struct {
     TimeSeries map[string]TimeSeriesData `json:"Time Series (5min)"`
 }
 
+type OverviewResponse struct {
+	Symbol            string  `json:"Symbol"`
+	Name              string  `json:"Name"`
+	PERatio           string  `json:"PERatio"`
+	PEGRatio          string  `json:"PEGRatio"`
+	PriceToBook       string  `json:"PriceToBookRatio"`
+	ReturnOnEquityTTM string  `json:"ReturnOnEquityTTM"`
+	OperatingMargin   string  `json:"OperatingMarginTTM"`
+	ProfitMargin      string  `json:"ProfitMargin"`
+	DividendYield     string  `json:"DividendYield"`
+	Beta              string  `json:"Beta"`
+}
+
+type IncomeStatement struct {
+	AnnualReports []struct {
+		FiscalDateEnding string `json:"fiscalDateEnding"`
+		TotalRevenue     string `json:"totalRevenue"`
+		NetIncome        string `json:"netIncome"`
+	} `json:"annualReports"`
+}
+
+type BalanceSheet struct {
+	AnnualReports []struct {
+		FiscalDateEnding        string `json:"fiscalDateEnding"`
+		TotalShareholderEquity string `json:"totalShareholderEquity"`
+	} `json:"annualReports"`
+}
+
 // GetStockQuote retrieves the latest stock quote
 func (c *AlphaVantageClient) GetStockQuote(ctx context.Context, symbol string) (*StockQuote, error) {
     log.Printf("Fetching stock quote for symbol: %s", symbol)
@@ -106,17 +134,102 @@ func (c *AlphaVantageClient) GetIntradayTimeSeries(ctx context.Context, symbol s
     return &response, nil
 }
 
-// ParseFloat safely parses a string to float64
-func ParseFloat(s string) (float64, error) {
-    return strconv.ParseFloat(s, 64)
+func ParseFloat(s string) *float64 {
+	if f, err := strconv.ParseFloat(s, 64); err == nil {
+		return &f
+	}
+	return nil 
 }
 
 // GetLatestPrice gets the latest price for a symbol
-func (c *AlphaVantageClient) GetLatestPrice(ctx context.Context, symbol string) (float64, error) {
+func (c *AlphaVantageClient) GetLatestPrice(ctx context.Context, symbol string) (*float64) {
     quote, err := c.GetStockQuote(ctx, symbol)
     if err != nil {
-        return 0, err
+        return nil
     }
 
     return ParseFloat(quote.Price)
 } 
+
+func (c *AlphaVantageClient) GetOverview(ctx context.Context, symbol string) (*OverviewResponse, error) {
+    req := &Request{
+        Method: "GET",
+        Path:   "/query",
+        Query: map[string]string{
+            "function": "OVERVIEW",
+            "symbol":   symbol,
+            "apikey":   c.apiKey,
+        },
+    }
+    var response OverviewResponse
+    if err := c.DoJSON(ctx, req, &response); err != nil {
+        return nil, fmt.Errorf("failed to get time series: %w", err)
+    }
+
+	// url := fmt.Sprintf("https://www.alphavantage.co/query?function=OVERVIEW&symbol=%s&apikey=%s", symbol, apiKey)
+	// resp, err := http.Get(url)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer resp.Body.Close()
+	// body, _ := ioutil.ReadAll(resp.Body)
+
+	// var data OverviewResponse
+	// err = json.Unmarshal(body, &data)
+	return &response, nil
+}
+
+func (c *AlphaVantageClient) GetIncomeStatement(ctx context.Context, symbol string) (*IncomeStatement, error) {
+    req := &Request{
+        Method: "GET",
+        Path:   "/query",
+        Query: map[string]string{
+            "function": "INCOME_STATEMENT",
+            "symbol":   symbol,
+            "apikey":   c.apiKey,
+        },
+    }
+    var response IncomeStatement
+    if err := c.DoJSON(ctx, req, &response); err != nil {
+        return nil, fmt.Errorf("failed to get income statement: %w", err)
+    }
+	// url := fmt.Sprintf("https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=%s&apikey=%s", symbol, apiKey)
+	// resp, err := http.Get(url)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer resp.Body.Close()
+	// body, _ := ioutil.ReadAll(resp.Body)
+
+	// var data IncomeStatement
+	// err = json.Unmarshal(body, &data)
+	return &response, nil
+}
+
+func (c *AlphaVantageClient) GetBalanceSheet(ctx context.Context, symbol string) (*BalanceSheet, error) {
+    req := &Request{
+        Method: "GET",
+        Path:   "/query",
+        Query: map[string]string{
+            "function": "INCOME_STATEMENT",
+            "symbol":   symbol,
+            "apikey":   c.apiKey,
+        },
+    }
+    var response BalanceSheet
+    if err := c.DoJSON(ctx, req, &response); err != nil {
+        return nil, fmt.Errorf("failed to get income statement: %w", err)
+    }
+
+	// url := fmt.Sprintf("https://www.alphavantage.co/query?function=BALANCE_SHEET&symbol=%s&apikey=%s", symbol, apiKey)
+	// resp, err := http.Get(url)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer resp.Body.Close()
+	// body, _ := ioutil.ReadAll(resp.Body)
+
+	// var data BalanceSheet
+	// err = json.Unmarshal(body, &data)
+	return &response, nil
+}

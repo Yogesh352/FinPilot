@@ -32,8 +32,9 @@ func main() {
 
     // Initialize repositories and services
     stockRepo := repository.NewStockRepository(db)
+    stockScoreRepo := repository.NewStockScoreRepository(db)
     stockService := service.NewStockService(stockRepo)
-    dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient, polygonClient, stockRepo)
+    dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient, polygonClient, stockRepo, stockScoreRepo)
 
     // Initialize handlers
     stockHandler := handler.NewStockHandler(stockService)
@@ -60,6 +61,10 @@ func main() {
     mux.HandleFunc("/api/extract/symbols", extractionHandler.ExtractSymbols)
     mux.HandleFunc("/api/extract/stockmetadata", extractionHandler.ExtractStockMetadata)
     mux.HandleFunc("/api/extract/companyprofile", extractionHandler.ExtractCompanyProfiles)
+    mux.HandleFunc("/api/extract/companyoverview", extractionHandler.ExtractCompanyOverviews)
+    mux.HandleFunc("/api/extract/incomestatment", extractionHandler.ExtractCompanyIncomeStatements)
+    mux.HandleFunc("/api/extract/balancesheet", extractionHandler.ExtractCompanyBalanceSheets)
+
     
 
     // Health check endpoint
