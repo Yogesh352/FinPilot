@@ -446,7 +446,7 @@ func (h *ExtractionHandler) ExtractCompanyBalanceSheets(w http.ResponseWriter, r
         w.WriteHeader(http.StatusInternalServerError)
     } else {
         response["status"] = "success"
-        response["message"] = "Company income statments extracted successfully"
+        response["message"] = "Company balance sheets extracted successfully"
     }
 
     w.Header().Set("Content-Type", "application/json")

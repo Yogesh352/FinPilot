@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"stock-api/internal/api"
 	"time"
+	"log"
 )
 
 
@@ -104,7 +105,7 @@ func (r *StockScoreRepository) StoreStockScorecard(card *Scorecard) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed to store stock scorecard: %w", err)
+		return err
 	}
 	return nil
 }
@@ -169,14 +170,15 @@ func (r *StockScoreRepository) StoreOverview(o *api.OverviewResponse) error {
 			profit_margin = EXCLUDED.profit_margin,
 			dividend_yield = EXCLUDED.dividend_yield,
 			beta = EXCLUDED.beta,
-			fetched_at = CURRENT_TIMESTAMP
+			created_at = CURRENT_TIMESTAMP
 	`
 
 	_, err := r.db.Exec(query,
-		o.Symbol, o.Name, api.ParseFloat(o.PERatio), api.ParseFloat(o.PEGRatio), api.ParseFloat(o.PriceToBook),
-		api.ParseFloat(o.ReturnOnEquityTTM), api.ParseFloat(o.OperatingMargin), api.ParseFloat(o.ProfitMargin),
-		api.ParseFloat(o.DividendYield), api.ParseFloat(o.Beta),
+		o.Symbol, o.Name, *api.ParseFloat(o.PERatio), *api.ParseFloat(o.PEGRatio), *api.ParseFloat(o.PriceToBook),
+		*api.ParseFloat(o.ReturnOnEquityTTM), *api.ParseFloat(o.OperatingMargin), *api.ParseFloat(o.ProfitMargin),
+		*api.ParseFloat(o.DividendYield), *api.ParseFloat(o.Beta),
 	)
+	log.Printf("HERE: %f", *api.ParseFloat(o.ReturnOnEquityTTM))
 	return err
 }
 
@@ -220,7 +222,7 @@ func (r *StockScoreRepository) StoreIncomeStatement(symbol string, income *api.I
 		ON CONFLICT (symbol, fiscal_date) DO UPDATE SET
 			total_revenue = EXCLUDED.total_revenue,
 			net_income = EXCLUDED.net_income,
-			fetched_at = CURRENT_TIMESTAMP
+			created_at = CURRENT_TIMESTAMP
 	`
 
 	for _, report := range income.AnnualReports {
@@ -240,7 +242,7 @@ func (r *StockScoreRepository) StoreBalanceSheet(symbol string, balance *api.Bal
 		) VALUES ($1, $2, $3)
 		ON CONFLICT (symbol, fiscal_date) DO UPDATE SET
 			shareholder_equity = EXCLUDED.shareholder_equity,
-			fetched_at = CURRENT_TIMESTAMP
+			created_at = CURRENT_TIMESTAMP
 	`
 
 	for _, report := range balance.AnnualReports {

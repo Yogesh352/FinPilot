@@ -351,8 +351,12 @@ func (s *DataExtractionService) BatchExtractAndStoreStockOverview(ctx context.Co
 			errorCount++
 			continue
 		}
+        log.Printf("OVERVIEW: %s", overview.PERatio)
 
-        s.stockScoreRepo.StoreOverview(overview)
+        err = s.stockScoreRepo.StoreOverview(overview)
+        if err != nil {
+            return err
+        }
         storedCount++
         log.Printf("Successfully stored overview data for %s", symbol)
     }
@@ -386,6 +390,8 @@ func (s *DataExtractionService) BatchExtractAndStoreStockBalanceStatement(ctx co
 
 	for _, symbol := range symbols {
 		balanceSheet, err := s.alphaVantageClient.GetBalanceSheet(ctx, symbol)
+        log.Printf("Balance sheet %s", balanceSheet.AnnualReports[0].TotalShareholderEquity)
+        
 		if err != nil {
 			log.Printf("failed to get balance sheet data for %s: %v", symbol, err)
 			errorCount++

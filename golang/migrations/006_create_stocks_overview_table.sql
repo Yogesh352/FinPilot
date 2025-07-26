@@ -13,8 +13,8 @@ CREATE TABLE stock_overviews (
 );
 
 CREATE TABLE stock_scorecards (
-    symbol TEXT PRIMARY KEY,
-    company_name TEXT,
+    symbol VARCHAR(10) PRIMARY KEY,
+    company_name VARCHAR(128),
     pe_ratio NUMERIC(10, 4),
     peg_ratio NUMERIC(10, 4),
     price_to_book NUMERIC(10, 4),
@@ -30,19 +30,19 @@ CREATE TABLE stock_scorecards (
 );
 
 CREATE TABLE stock_income_statements (
-    symbol TEXT,
+    symbol VARCHAR(10),
     fiscal_date DATE,
     total_revenue NUMERIC(18, 2),
     net_income NUMERIC(18, 2),
-    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (symbol, fiscal_date)
 );
 
 CREATE TABLE stock_balance_sheets (
-    symbol TEXT,
+    symbol VARCHAR(10),
     fiscal_date DATE,
     shareholder_equity NUMERIC(18, 2),
-    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (symbol, fiscal_date)
 );
 

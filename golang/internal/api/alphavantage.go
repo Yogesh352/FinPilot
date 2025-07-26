@@ -211,7 +211,7 @@ func (c *AlphaVantageClient) GetBalanceSheet(ctx context.Context, symbol string)
         Method: "GET",
         Path:   "/query",
         Query: map[string]string{
-            "function": "INCOME_STATEMENT",
+            "function": "BALANCE_SHEET",
             "symbol":   symbol,
             "apikey":   c.apiKey,
         },

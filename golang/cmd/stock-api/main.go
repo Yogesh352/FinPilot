@@ -33,7 +33,7 @@ func main() {
     // Initialize repositories and services
     stockRepo := repository.NewStockRepository(db)
     stockScoreRepo := repository.NewStockScoreRepository(db)
-    stockService := service.NewStockService(stockRepo)
+    stockService := service.NewStockService(stockRepo, stockScoreRepo)
     dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient, polygonClient, stockRepo, stockScoreRepo)
 
     // Initialize handlers
@@ -64,6 +64,7 @@ func main() {
     mux.HandleFunc("/api/extract/companyoverview", extractionHandler.ExtractCompanyOverviews)
     mux.HandleFunc("/api/extract/incomestatment", extractionHandler.ExtractCompanyIncomeStatements)
     mux.HandleFunc("/api/extract/balancesheet", extractionHandler.ExtractCompanyBalanceSheets)
+    mux.HandleFunc("/api/calculate/scorecard", stockHandler.CalculateStockScoreCard)
 
     
 

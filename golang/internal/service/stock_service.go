@@ -1,6 +1,7 @@
 package service
 
 import (
+    "context"
     "time"
     "stock-api/internal/repository"
     "stock-api/internal/util"
@@ -11,8 +12,8 @@ type StockService struct {
     scoreRepo *repository.StockScoreRepository
 }
 
-func NewStockService(repo *repository.StockRepository) *StockService {
-    return &StockService{repo: repo}
+func NewStockService(repo *repository.StockRepository, scoreRepo *repository.StockScoreRepository) *StockService {
+    return &StockService{repo: repo, scoreRepo: scoreRepo}
 }
 
 func (s *StockService) GetStockSummary(symbol string) (float64, error) {
@@ -60,7 +61,7 @@ func (s *StockService) DeleteStockMetadata(symbol string) error {
 }
 
 
-func (s *StockService) CalculateLongTermScoreCard(symbols []string) {
+func (s *StockService) CalculateLongTermScoreCard(ctx context.Context, symbols []string) error{
     for _, symbol := range symbols {
         overview, _ := s.scoreRepo.GetOverview(symbol)
         income, _ := s.scoreRepo.GetIncomeStatement(symbol)
@@ -80,6 +81,10 @@ func (s *StockService) CalculateLongTermScoreCard(symbols []string) {
             Revenue5YGrowth: util.Calculate5YRevenueGrowth(income),
             HistoricalROE:   util.CalculateHistoricalROE(income, balance),
         }
-        s.scoreRepo.StoreStockScorecard(&card);
+        err :=  s.scoreRepo.StoreStockScorecard(&card);
+        if err != nil {
+            return err
+        }
     }
+    return nil
 }

@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "net/http"
     "time"
+    "context"
     "stock-api/internal/service"
     "stock-api/internal/repository"
     "stock-api/internal/util"
@@ -15,6 +16,10 @@ type StockHandler struct {
 
 func NewStockHandler(s *service.StockService) *StockHandler {
     return &StockHandler{service: s}
+}
+
+type CalculateStockScoreCardRequest struct {
+    Symbols []string `json:"symbols"`
 }
 
 func (h *StockHandler) GetStockSummary(w http.ResponseWriter, r *http.Request) {
@@ -241,6 +246,46 @@ func (h *StockHandler) DeleteStockMetadata(w http.ResponseWriter, r *http.Reques
         "message":   "Stock metadata deleted successfully",
         "symbol":    symbol,
         "timestamp": time.Now(),
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+func (s *StockHandler) CalculateStockScoreCard(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req CalculateStockScoreCardRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if len(req.Symbols) == 0 {
+        http.Error(w, "At least one symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
+    defer cancel()
+
+    err := s.service.CalculateLongTermScoreCard(ctx, req.Symbols)
+
+    response := map[string]interface{}{
+        "symbols":   req.Symbols,
+        "timestamp": time.Now(),
+    }
+
+    if err != nil {
+        response["status"] = "error"
+        response["message"] = err.Error()
+        w.WriteHeader(http.StatusInternalServerError)
+    } else {
+        response["status"] = "success"
+        response["message"] = "Stock Score cards calculated successfully"
     }
 
     w.Header().Set("Content-Type", "application/json")
