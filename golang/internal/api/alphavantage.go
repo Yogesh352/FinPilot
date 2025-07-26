@@ -16,7 +16,7 @@ type AlphaVantageClient struct {
 // NewAlphaVantageClient creates a new Alpha Vantage client
 func NewAlphaVantageClient(apiKey string, timeout time.Duration) *AlphaVantageClient {
     return &AlphaVantageClient{
-        APIClient: NewAPIClient("https://www.alphavantage.co", apiKey, 5, timeout), // Alpha Vantage has strict rate limits
+        APIClient: NewAPIClient("https://www.alphavantage.co", apiKey, 5, timeout),
     }
 }
 

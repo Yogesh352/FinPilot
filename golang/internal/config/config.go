@@ -16,6 +16,7 @@ type Config struct {
     FinnhubAPIKey      string
     YahooFinanceAPIKey string
     PolygonAPIKey      string
+    RowsAPIKey          string
     // API rate limiting
     APIRequestTimeout time.Duration
     MaxRequestsPerMinute int
@@ -37,6 +38,7 @@ func Load() Config {
         FinnhubAPIKey:       os.Getenv("FINNHUB_API_KEY"),
         YahooFinanceAPIKey:  os.Getenv("YAHOO_FINANCE_API_KEY"),
         PolygonAPIKey:       os.Getenv("POLYGON_API_KEY"),
+        RowsAPIKey:       os.Getenv("ROWS_API_KEY"),
         APIRequestTimeout:   getDurationEnvOrDefault("API_REQUEST_TIMEOUT", 30*time.Second),
         MaxRequestsPerMinute: getIntEnvOrDefault("MAX_REQUESTS_PER_MINUTE", 60),
         MaxDBConnections:    getIntEnvOrDefault("MAX_DB_CONNECTIONS", 10),

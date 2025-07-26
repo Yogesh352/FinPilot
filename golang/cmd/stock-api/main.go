@@ -28,17 +28,21 @@ func main() {
     alphaVantageClient := api.NewAlphaVantageClient(cfg.AlphaVantageAPIKey, cfg.APIRequestTimeout)
     finnHubClient := api.NewFinnhubClient(cfg.FinnhubAPIKey, cfg.APIRequestTimeout)
     polygonClient := api.NewPolygonClient(cfg.PolygonAPIKey, cfg.APIRequestTimeout)
+    rowsClient := api.NewRowsClient(cfg.RowsAPIKey, cfg.APIRequestTimeout)
 
 
     // Initialize repositories and services
     stockRepo := repository.NewStockRepository(db)
     stockScoreRepo := repository.NewStockScoreRepository(db)
+    transactionRepo := repository.NewTransactionsRepository(db)
     stockService := service.NewStockService(stockRepo, stockScoreRepo)
     dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient, polygonClient, stockRepo, stockScoreRepo)
+    transactionService := service.NewTransactionService(rowsClient, transactionRepo)
 
     // Initialize handlers
     stockHandler := handler.NewStockHandler(stockService)
     extractionHandler := handler.NewExtractionHandler(dataExtractionService)
+    transactionHandler := handler.NewTransactionHandler(transactionService)
 
     // Setup routes
     mux := http.NewServeMux()
@@ -66,7 +70,8 @@ func main() {
     mux.HandleFunc("/api/extract/balancesheet", extractionHandler.ExtractCompanyBalanceSheets)
     mux.HandleFunc("/api/calculate/scorecard", stockHandler.CalculateStockScoreCard)
 
-    
+    //Transaction Endpoints
+    mux.HandleFunc("/api/extract/banktransactions", transactionHandler.ExtractTransactions)
 
     // Health check endpoint
     mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
