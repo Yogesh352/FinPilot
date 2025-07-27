@@ -10,4 +10,4 @@ CREATE TABLE personal_transactions (
     inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_personal_transactions ON stocks_intraday(symbol);
+CREATE INDEX IF NOT EXISTS idx_personal_transactions ON personal_transactions(symbol);

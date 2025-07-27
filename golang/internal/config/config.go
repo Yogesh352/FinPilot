@@ -23,6 +23,8 @@ type Config struct {
     // Database settings
     MaxDBConnections int
     DBTimeout        time.Duration
+    //JWT
+    JWTSecret string
 }
 
 func Load() Config {
@@ -43,6 +45,7 @@ func Load() Config {
         MaxRequestsPerMinute: getIntEnvOrDefault("MAX_REQUESTS_PER_MINUTE", 60),
         MaxDBConnections:    getIntEnvOrDefault("MAX_DB_CONNECTIONS", 10),
         DBTimeout:           getDurationEnvOrDefault("DB_TIMEOUT", 5*time.Second),
+        JWTSecret: os.Getenv("JWT_SECRET"),
     }
 }
 

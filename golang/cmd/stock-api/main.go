@@ -9,6 +9,7 @@ import (
 	"stock-api/internal/api"
 	"stock-api/internal/config"
 	"stock-api/internal/handler"
+	"stock-api/internal/middleware"
 	"stock-api/internal/repository"
 	"stock-api/internal/service"
 
@@ -35,14 +36,19 @@ func main() {
     stockRepo := repository.NewStockRepository(db)
     stockScoreRepo := repository.NewStockScoreRepository(db)
     transactionRepo := repository.NewTransactionsRepository(db)
+    usersRepo := repository.NewUserRepository(db)
+
+
     stockService := service.NewStockService(stockRepo, stockScoreRepo)
     dataExtractionService := service.NewDataExtractionService(alphaVantageClient, finnHubClient, polygonClient, stockRepo, stockScoreRepo)
     transactionService := service.NewTransactionService(rowsClient, transactionRepo)
+    userService := service.NewUserService(usersRepo)
 
     // Initialize handlers
     stockHandler := handler.NewStockHandler(stockService)
     extractionHandler := handler.NewExtractionHandler(dataExtractionService)
     transactionHandler := handler.NewTransactionHandler(transactionService)
+    userHandler := handler.NewUserHandler(userService)
 
     // Setup routes
     mux := http.NewServeMux()
@@ -71,7 +77,13 @@ func main() {
     mux.HandleFunc("/api/calculate/scorecard", stockHandler.CalculateStockScoreCard)
 
     //Transaction Endpoints
-    mux.HandleFunc("/api/extract/banktransactions", transactionHandler.ExtractTransactions)
+    protectedHandler := middleware.AuthMiddleware(config.Load().JWTSecret)(http.HandlerFunc(transactionHandler.ExtractTransactions))
+    mux.Handle("/api/extract/banktransactions", protectedHandler)
+    // mux.HandleFunc("/api/extract/banktransactions", transactionHandler.ExtractTransactions)
+
+    mux.HandleFunc("/api/user/register", userHandler.Register)
+    mux.HandleFunc("/api/user/login", userHandler.Login)
+
 
     // Health check endpoint
     mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
