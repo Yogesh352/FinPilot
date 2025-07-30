@@ -31,37 +31,26 @@ resource "google_service_account" "analytics_sa" {
   display_name = "Analytics/DBT Service Account"
 }
 
-resource "google_project_iam_member" "tf_runner_admin" {
-  project = var.project_id
-  role    = "roles/owner" 
-  member  = "user:yogesh.aws0001@gmail.com"
-
-}
-
 resource "google_project_iam_member" "airbyte_bigquery" {
   project = var.project_id
   role    = "roles/bigquery.dataEditor"
   member  = "serviceAccount:${google_service_account.airbyte_sa.email}"
-  depends_on = [google_project_iam_member.tf_runner_admin]
 }
 
 resource "google_project_iam_member" "airbyte_jobuser" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
   member  = "serviceAccount:${google_service_account.airbyte_sa.email}"
-  depends_on = [google_project_iam_member.tf_runner_admin]
 }
 
 resource "google_project_iam_member" "analytics_bigquery" {
   project = var.project_id
   role    = "roles/bigquery.dataEditor"
   member  = "serviceAccount:${google_service_account.analytics_sa.email}"
-  depends_on = [google_project_iam_member.tf_runner_admin]
 }
 
 resource "google_project_iam_member" "analytics_jobuser" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
   member  = "serviceAccount:${google_service_account.analytics_sa.email}"
-  depends_on = [google_project_iam_member.tf_runner_admin]
 }
