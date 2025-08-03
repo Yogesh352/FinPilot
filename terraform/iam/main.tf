@@ -44,3 +44,12 @@ resource "aws_iam_policy" "ec2_ecr_rds_full_access" {
     ]
   })
 }
+
+resource "aws_iam_user" "admin" {
+  name = "admin"
+}
+
+resource "aws_iam_user_policy_attachment" "iam_admin_user_attach" {
+  user       = aws_iam_user.admin.name
+  policy_arn = aws_iam_policy.ec2_ecr_rds_full_access.arn
+}
