@@ -1,4 +1,4 @@
-# FinStack – My Personal Finance + Stock Data Platform
+# FinPilot – My Personal Finance + Stock Data Platform
 
 This is a personal project I've been building to combine a bunch of financial tools and data into one place. It started as a way for me to sharpen my data engineering skills and try out some new tools and stacks — but it's also been super useful for managing my own investments and spending.
 
