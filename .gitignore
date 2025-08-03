@@ -1,3 +1,10 @@
 # Ignore all env files
 *.env
 node_modules
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
